@@ -1,0 +1,14 @@
+Using default temp DH parameters
+140282606008128:error:2008F002:BIO routines:BIO_lookup_ex:system lib:../crypto/bio/b_addr.c:726:Servname not supported for ai_socktype
+   0 items in the session cache
+   0 client connects (SSL_connect())
+   0 client renegotiates (SSL_connect())
+   0 client connects that finished
+   0 server accepts (SSL_accept())
+   0 server renegotiates (SSL_accept())
+   0 server accepts that finished
+   0 session cache hits
+   0 session cache misses
+   0 session cache timeouts
+   0 callback cache hits
+   0 cache full overflows (128 allowed)
