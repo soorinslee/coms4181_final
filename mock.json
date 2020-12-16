@@ -1,0 +1,7 @@
+{
+    "status_code": 200,
+    "response_type": 1,
+    "content": {
+        "certificate": "fake certificate"
+    }
+}

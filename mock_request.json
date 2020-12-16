@@ -1,0 +1,11 @@
+{
+  "request_type": 1,
+  "url": "127.0.0.1",
+  "port_no": 5000,
+  "content":
+  {
+    "request_type": 1,
+    "username": "username",
+    "password": "password"
+  }
+}
