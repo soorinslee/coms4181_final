@@ -140,13 +140,15 @@ void server(SSL* ssl) {
 cJSON* get_response(char* request_msg) {
     const char* http_req = "POST mail HTTP/1.0\nContent-Length:0\n\n";
     const int http_req_len = strlen(http_req);
-    cJSON* request_obj;
+    cJSON* request_obj, *response_obj;
 
     request_obj = cJSON_Parse(request_msg+http_req_len);
     // this method cannot do any pre-handling of requests
     // if the request is bad, the handler should identify this
     // and submit a reasonably created JSON error response
-    return get_response_obj(request_obj);
+    response_obj = get_response_obj(request_obj);
+    free(request_obj);
+    return response_obj;
 }
 
 char* create_response_msg(cJSON* response) {
