@@ -1,11 +1,3 @@
-/*******************************************************/
-//COMS W4181
-//Final Project
-//
-//getnextmsg.c
-//By four words all lowercase ONEWORDALLUPPERCASE
-/*******************************************************/
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,7 +5,7 @@
 #include <dirent.h>
 #include <sys/time.h>
 
-int main(int argc, char** argv) {
+int getnextmsg(int argc, char** argv) {
 
     if(argc != 2) {
         fprintf(stderr, "Incorrect number of arguments.\n");

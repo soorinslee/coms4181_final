@@ -43,12 +43,12 @@ int main(int argc, char** argv) {
     strcpy(pass, argv[2]);
 
     char* new_pass = malloc((strlen(argv[3])+1) * sizeof(char));
-    
+
     if(new_pass == NULL) {
         fprintf(stderr, "Error allocating memory for new_pass.\n");
         return 2;
     }
-    
+
     strcpy(new_pass, argv[3]);
 
     if(strlen(new_pass) != 32) {
@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
 	free(pass);
 	free(new_pass);
 	fclose(pwd_file);
-	return 6;	
+	return 6;
     }
 
     printf("Password successfully changed.\n");
@@ -117,23 +117,3 @@ int main(int argc, char** argv) {
     return 0;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

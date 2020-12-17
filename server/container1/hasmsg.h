@@ -1,18 +1,10 @@
-/*******************************************************/
-//COMS W4181
-//Final Project
-//
-//hasmsg.c
-//By four words all lowercase ONEWORDALLUPPERCASE
-/*******************************************************/
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
 
-int main(int argc, char** argv) {
+int hasmsg(int argc, char** argv) {
 
     if(argc != 2) {
         fprintf(stderr, "Incorrect number of arguments.\n");

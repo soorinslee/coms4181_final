@@ -1,45 +1,34 @@
-/*******************************************************/
-//COMS W4181
-//Final Project
-//
-//isuservalid.c
-//
-//-rwxr-sr-s 1 root root size date isuservalid
-//
-//By four words all lowercase ONEWORDALLUPPERCASE
-/*******************************************************/
 
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
 
-int main(int argc, char** argv) {
+int isuservalid(char* in_user, char* pass) {
 
-    if(argc != 3) {
-	fprintf(stderr, "Incorrect number of arguments.\n");
-	return 1;
-    }
+    // if(argc != 3) {
+	// fprintf(stderr, "Incorrect number of arguments.\n");
+	// return 1;
+    // }
 
-    char* user = malloc((strlen(argv[1])+5) * sizeof(char));
+    char* user = malloc((strlen(in_user)+5) * sizeof(char));
 
     if(user == NULL) {
         fprintf(stderr, "Error allocating memory for user.\n");
         return 2;
     }
 
-    strcpy(user, argv[1]);
+    strcpy(user, in_user);
 
-    char* pass = malloc((strlen(argv[2])+1) * sizeof(char));
-
-    if(pass == NULL) {
-        fprintf(stderr, "Error allocating memory for pass.\n");
-	free(user);
-        return 2;
-    }
-
-    strcpy(pass, argv[2]);
+    // char* pass = malloc((strlen(argv[2])+1) * sizeof(char));
+    //
+    // if(pass == NULL) {
+    //     fprintf(stderr, "Error allocating memory for pass.\n");
+	// free(user);
+    //     return 2;
+    // }
+    //
+    // strcpy(pass, argv[2]);
 
     DIR* dir = opendir("./passwords");
 

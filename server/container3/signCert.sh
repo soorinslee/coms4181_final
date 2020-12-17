@@ -21,7 +21,7 @@ openssl genrsa -out intermediate/private/$cmn_name.key.pem 2048
 chmod 400 intermediate/private/$cmn_name.key.pem
 
 openssl req -config intermediate/openssl.cnf -passin pass:123456 -key intermediate/private/$cmn_name.key.pem -new -sha256 -subj /C=US/ST=NY/L=NYC/O=Final/OU=Final/CN=$cmn_name -out intermediate/csr/$cmn_name.csr.pem
-    
+
 
 
 
@@ -30,5 +30,3 @@ chmod 444 intermediate/certs/$cmn_name.cert.pem
 openssl x509 -noout -text -in intermediate/certs/$cmn_name.cert.pem
 echo "Verify certificate chain of trust"
 openssl verify -CAfile intermediate/certs/ca-chain.cert.pem intermediate/certs/$cmn_name.cert.pem
-
-
