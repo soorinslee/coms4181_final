@@ -36,6 +36,10 @@ struct CALL_RET* isuservalid_call(char* username, char* password);
 
 struct CALL_RET* getcert_call(char* csr_str);
 
+struct CALL_RET* changepw_call(char* username, char* password, char* new_password);
+
+struct CALL_RET* hasmsg_call(char* username);
+
 cJSON* get_response_obj(cJSON* request) {
     int request_type;
 
@@ -100,7 +104,7 @@ cJSON* handle_request_1(cJSON* request) {
     cJSON_AddNumberToObject(content_obj, "response_type", 1);
 
     // make calls
-    call_return = isuservalid_call(username, password);
+    call_return = isuservalid_call(username, hpass);
     if (call_return->code != 0) {
         cJSON_AddNumberToObject(response_obj, "status_code", 401);
         cJSON_AddStringToObject(content_obj, "error_msg", "Invalid username or password.\n");
@@ -108,6 +112,70 @@ cJSON* handle_request_1(cJSON* request) {
         return response_obj;
     }
     free(call_return);
+    call_return = getcert_call(csr_str);
+    if (call_return->code != 0) {
+        cJSON_AddNumberToObject(response_obj, "status_code", 401);
+        cJSON_AddStringToObject(content_obj, "error_msg", "Invalid key provided.\n");
+        free(call_return);
+        return response_obj;
+    }
+    cJSON_AddNumberToObject(response_obj, "status_code", 200);
+    cJSON_AddItemToObject(response_obj, "certificate", cJSON_CreateString(call_return->content));
+    free(call_return->content);
+    free(call_return);
+    return response_obj;
+}
+
+cJSON* handle_request_2(cJSON* request) {
+    char username[256] = {0}, hpass[1024] = {0}, hpass2[1024] = {0}, csr_str[16384] = {0};
+    cJSON* response_obj, *content_obj;
+    struct CALL_RET* call_return;
+
+    // first check that the request has all the required components
+    if (cJSON_IsString(cJSON_GetObjectItemCaseSensitive(request, "username")) == false) {
+        fprintf(stderr, "Failed changepw: Invalid username.\n");
+        return NULL;
+    }
+    if (cJSON_IsString(cJSON_GetObjectItemCaseSensitive(request, "password")) == false) {
+        fprintf(stderr, "Failed changepw: Invalid password.\n");
+        return NULL;
+    }
+    if (cJSON_IsString(cJSON_GetObjectItemCaseSensitive(request, "new_password")) == false) {
+        fprintf(stderr, "Failed changepw: Invalid new password.\n");
+    }
+    if (cJSON_IsString(cJSON_GetObjectItemCaseSensitive(request, "public_key")) == false) {
+        fprintf(stderr, "Failed changepw: Invalid csr.\n");
+        return NULL;
+    }
+    // create all the components required
+    strncpy(username, cJSON_GetObjectItemCaseSensitive(request, "username")->valuestring, 256);
+    strncpy(hpass, cJSON_GetObjectItemCaseSensitive(request, "password")->valuestring, 1024);
+    strncpy(hpass2, cJSON_GetObjectItemCaseSensitive(request, "new_password")->valuestring, 1024);
+    strncpy(csr_str, cJSON_GetObjectItemCaseSensitive(request, "public_key")->valuestring, 16384);
+
+    // setup JSON return
+    response_obj = cJSON_CreateObject();
+    cJSON_AddNumberToObject(response_obj, "response_type", 1);
+    content_obj = cJSON_CreateObject();
+    cJSON_AddItemToObject(response_obj, "content", content_obj);
+    cJSON_AddNumberToObject(content_obj, "response_type", 1);
+
+    // make calls
+    call_return = hasmsg_call(username);
+    if (call_return->code != 0) {
+        cJSON_AddNumberToObject(response_obj, "status_code", 403);
+        cJSON_AddStringToObject(content_obj, "error_msg", "Unread messages remain; cannot change password.\n");
+        free(call_return);
+        return response_obj;
+    }
+    free(call_return);
+    call_return = changepw_call(username, hpass, hpass2);
+    if (call_return->code != 0) {
+        cJSON_AddNumberToObject(response_obj, "status_code", 401);
+        cJSON_AddStringToObject(content_obj, "error_msg", "Invalid username or password.\n");
+        free(call_return);
+        return response_obj;
+    }
     call_return = getcert_call(csr_str);
     if (call_return->code != 0) {
         cJSON_AddNumberToObject(response_obj, "status_code", 401);
@@ -139,6 +207,15 @@ struct CALL_RET* getcert_call(char* csr_str) {
     // if 0 is returned, I expect content in the call_ret, otherwise it should be free
     // the content should be the full text of the certificate
     // so you can write the csr, sign it, write the output cert, and then read it to a string and stick it in content
+}
+
+struct CALL_RET* changepw_call(char* username, char* password, char* new_password) {
+    //todo Jason: this is similar to the isuservalid_call
+}
+
+struct CALL_RET* hasmsg_call(char* username) {
+    //todo Jason: checks if the user has messages; don't worry about authenticating
+    // 0 if no messages, otherwise anything else
 }
 
 //changepwd request
