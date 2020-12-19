@@ -12,8 +12,9 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/time.h>
+#include "getnextmsg.h"
 
-int main(int argc, char** argv) {
+int getnextmsg(int argc, char** argv) {
 
     if(argc != 2) {
         fprintf(stderr, "Incorrect number of arguments.\n");
@@ -44,20 +45,20 @@ int main(int argc, char** argv) {
         min = ((long long int) timer_usec.tv_sec) * 1000000ll + (long long int) timer_usec.tv_usec;
     } else {
         min = -1;
-	fprintf(stderr, "Issue getting current time.\n");
-	free(user);
-	closedir(dir);
-	return 2;
+        fprintf(stderr, "Issue getting current time.\n");
+        free(user);
+        closedir(dir);
+        return 2;
     }
 
 
     while((file = readdir(dir)) != NULL) {
 
-	long long int fn;
-	if(strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0) {
-	    continue;
-	}
-	sscanf(file->d_name, "%lld", &fn);
+        long long int fn;
+        if(strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0) {
+            continue;
+        }
+        sscanf(file->d_name, "%lld", &fn);
         if(fn < min) {
             min = fn;
         }
@@ -82,10 +83,10 @@ int main(int argc, char** argv) {
 
     while(1) {
 
-	int leave = 0;
+        int leave = 0;
 
-	size_t size = fread(buffer, 1, sizeof(buffer), msg_file);
-	if(size < sizeof(buffer)) {
+        size_t size = fread(buffer, 1, sizeof(buffer), msg_file);
+        if(size < sizeof(buffer)) {
             leave = 1;
         }
 
@@ -97,9 +98,9 @@ int main(int argc, char** argv) {
             return 6;
         }
 
-	if(leave) {
+        if(leave) {
             break;
-	}
+        }
 
     }
 

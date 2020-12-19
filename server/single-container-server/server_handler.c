@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <fcntl.h>
 #include "server_handler.h"
 #include "isuservalid.h"
 #include "changepwd.h"
@@ -34,7 +35,7 @@ cJSON* handle_request_5(cJSON* request);
 
 struct CALL_RET* isuservalid_call(char* username, char* password);
 
-struct CALL_RET* getcert_call(char* csr_str);
+struct CALL_RET* getcert_call(char* username, char* csr_str);
 
 struct CALL_RET* changepw_call(char* username, char* password, char* new_password);
 
@@ -119,7 +120,7 @@ cJSON* handle_request_1(cJSON* request) {
         return response_obj;
     }
     free(call_return);
-    call_return = getcert_call(csr_str);
+    call_return = getcert_call(username, csr_str);
     if (call_return->code != 0) {
         cJSON_AddNumberToObject(response_obj, "status_code", 401);
         cJSON_AddStringToObject(content_obj, "error_msg", "Invalid key provided.\n");
@@ -184,7 +185,7 @@ cJSON* handle_request_2(cJSON* request) {
         free(call_return);
         return response_obj;
     }
-    call_return = getcert_call(csr_str);
+    call_return = getcert_call(username, csr_str);
     if (call_return->code != 0) {
         cJSON_AddNumberToObject(response_obj, "status_code", 401);
         cJSON_AddStringToObject(content_obj, "error_msg", "Invalid key provided.\n");
@@ -200,7 +201,7 @@ cJSON* handle_request_2(cJSON* request) {
 
 cJSON* handle_request_3(cJSON* request) {
     char *sender, *cur_rcpt, *cert_str, *sig_str;
-    cJSON* response_obj, *content_obj, *loop_obj, *loop_internal_obj;
+    cJSON* response_obj, *content_obj, *loop_obj, *loop_internal_obj, *elem;
     struct CALL_RET* call_return;
 
     // first check that the request has all the required components
@@ -314,7 +315,7 @@ cJSON* handle_request_4(cJSON* request) {
     free(call_return);
 
     // send the message
-    call_return = savemsg_call(username, recipient, msg);
+    call_return = savemsg_call(sender, recipient, msg);
     if (call_return-> code != 0) {
         cJSON_AddNumberToObject(response_obj, "status_code", 403);
         cJSON_AddStringToObject(content_obj, "error_msg", "Failed to save msg.\n");
@@ -400,7 +401,7 @@ struct CALL_RET* isuservalid_call(char* username, char* password) {
         return NULL;
     }
     call_ret->code = isuservalid(username, password);
-    return call_ret
+    return call_ret;
 }
 
 // calls getcert and gets a response
@@ -412,7 +413,7 @@ struct CALL_RET* getcert_call(char* username, char* csr_str) {
 
     // write csr
     char* csr_fn = malloc(100 * sizeof(char));
-    strcat(csr_fn, "ca/intermediate/csr/")
+    strcat(csr_fn, "ca/intermediate/csr/");
     strcat(csr_fn, username);
     strcat(csr_fn, ".csr.pem");
     FILE* csr_file = fopen(csr_fn, "w");
@@ -428,17 +429,17 @@ struct CALL_RET* getcert_call(char* username, char* csr_str) {
     // sign csr and generate cert
     char* gen_cert = malloc(100 * sizeof(char));
     strcat(gen_cert, "bash signCert.sh ");
-    strcat(gen_cert, username)
+    strcat(gen_cert, username);
     system(gen_cert);
 
     // call setcertificate to move cert to user folder
     char* cert_fn = malloc(100 * sizeof(char));
-    sprintf(cert_fn, "./ca/intermediate/certs/%s.cert.pem", user);
-    int in = open(cert_fn)
+    sprintf(cert_fn, "./ca/intermediate/certs/%s.cert.pem", username);
+    int in = open(cert_fn, O_RDONLY);
     dup2(in, 0);
     close(in);
 
-    if(setcertificate(user) != 0) {
+    if(setcertificate(username) != 0) {
         fprintf(stderr, "Issue saving generated certificate.\n");
         call_ret->code = 2;
         return call_ret;
@@ -446,7 +447,7 @@ struct CALL_RET* getcert_call(char* username, char* csr_str) {
 
     // call getcertificate to read cert from user folder
     call_ret->code = 0;
-    call_ret->content = getcertificate(user);
+    call_ret->content = getcertificate(username);
     return call_ret;
 
 }
