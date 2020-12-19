@@ -373,6 +373,16 @@ cJSON* handle_request_5(cJSON* request) {
     }
     free(call_return);
 
+    // check that the user has messages;
+    call_return = hasmsg_call(recipient);
+    if (call_return->code != 0) {
+        cJSON_AddNumberToObject(response_obj, "status_code", 403);
+        cJSON_AddStringToObject(content_obj, "error_msg", "User has no messages.\n");
+        free(call_return);
+        return response_obj;
+    }
+    free(call_return);
+
     // attempt to retrieve a message
     call_return = getmsg_call(recipient);
     if (call_return->code != 0) {
@@ -392,7 +402,7 @@ cJSON* handle_request_5(cJSON* request) {
         return response_obj;
     }
     cJSON_AddNumberToObject(response_obj, "status_code", 200);
-    cJSON_AddStringToObject(content_obj, "sender_certificate", cJSON_GetObjectItemCaseSensitive(tmp_obj, "sender_certificate")->valuestring);
+    cJSON_AddStringToObject(content_obj, "sender_certificate", cJSON_GetObjectItemCaseSensitive(tmp_obj, "certificate")->valuestring);
     cJSON_AddStringToObject(content_obj, "message", cJSON_GetObjectItemCaseSensitive(tmp_obj, "message")->valuestring);
     cJSON_Delete(tmp_obj);
     return response_obj;

@@ -25,7 +25,7 @@ int changepwd(char* in_user, char* pass, char* new_pass) {
     //     return 1;
     // }
 
-    char* user = malloc((strlen(in_user)+5) * sizeof(char));
+    char* user = calloc(sizeof(char), strlen(in_user)+5);
 
     if(user == NULL) {
         fprintf(stderr, "Error allocating memory for user.\n");
@@ -53,7 +53,7 @@ int changepwd(char* in_user, char* pass, char* new_pass) {
     //
     //   strcpy(new_pass, argv[3]);
 
-    if(strlen(new_pass) != 32) {
+    if(strlen(new_pass) != 64) {
         fprintf(stderr, "New password corrupted.\n");
         free(user);
         // free(pass);
@@ -108,7 +108,7 @@ int changepwd(char* in_user, char* pass, char* new_pass) {
     }
 
     fseek(pwd_file, 0, SEEK_SET);
-    if(fwrite(new_pass, 1, 32, pwd_file) != 32) {
+    if(fwrite(new_pass, 1, 64, pwd_file) != 64) {
         fprintf(stderr, "Error writing to %s.\n", user);
         free(user);
         // free(pass);

@@ -22,7 +22,7 @@ int isuservalid(char* in_user, char* pass) {
     // return 1;
     // }
 
-    char* user = malloc((strlen(in_user)+5) * sizeof(char));
+    char* user = calloc(sizeof(char), (strlen(in_user)+5) );
 
     if(user == NULL) {
         fprintf(stderr, "Error allocating memory for user.\n");
