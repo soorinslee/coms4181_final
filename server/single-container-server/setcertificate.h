@@ -4,15 +4,10 @@
 #include <unistd.h>
 #include <dirent.h>
 
-int setcertificate(int argc, char** argv) {
+int setcertificate(char* username) {
 
-    if(argc != 2) {
-        fprintf(stderr, "Incorrect number of arguments.\n");
-        return 1;
-    }
-
-    char* user = malloc((strlen(argv[1])+1) * sizeof(char));
-    strcpy(user, argv[1]);
+    char* user = malloc((strlen(username)+1) * sizeof(char));
+    strcpy(user, username);
 
     DIR* dir = opendir("./certs");
 
@@ -64,17 +59,17 @@ int setcertificate(int argc, char** argv) {
 
     while(1) {
 
-	ssize_t read_size = read(STDIN_FILENO, buffer, sizeof(buffer));
+        ssize_t read_size = read(STDIN_FILENO, buffer, sizeof(buffer));
 
-	if(read_size == -1) {
-	    fprintf(stderr, "Error reading stdin.\n");
+        if(read_size == -1) {
+            fprintf(stderr, "Error reading stdin.\n");
             free(user);
             free(buffer);
             fclose(cert_file);
             return 5;
-	} else if(read_size < sizeof(buffer)) {
+        } else if(read_size < sizeof(buffer)) {
 
-	    if(fwrite(buffer, 1, read_size, cert_file) != read_size) {
+            if(fwrite(buffer, 1, read_size, cert_file) != read_size) {
                 fprintf(stderr, "Error writing to cert_file.\n");
                 free(user);
                 free(buffer);
@@ -82,17 +77,17 @@ int setcertificate(int argc, char** argv) {
                 return 4;
             }
 
-	    break;
+            break;
 
-	}
+        }
 
         if(fwrite(buffer, 1, sizeof(buffer), cert_file) != sizeof(buffer)) {
-      	    fprintf(stderr, "Error writing to cert_file.\n");
-      	    free(user);
+            fprintf(stderr, "Error writing to cert_file.\n");
+            free(user);
             free(buffer);
             fclose(cert_file);
             return 4;
-	}
+        }
     }
 
     free(user);

@@ -4,15 +4,15 @@
 #include <unistd.h>
 #include <dirent.h>
 
-int hasmsg(int argc, char** argv) {
+int hasmsg(char* user_in) {
 
-    if(argc != 2) {
-        fprintf(stderr, "Incorrect number of arguments.\n");
-        return 4;
-    }
+    // if(argc != 2) {
+    //     fprintf(stderr, "Incorrect number of arguments.\n");
+    //     return 4;
+    // }
 
-    char* user = malloc((strlen(argv[1])+1) * sizeof(char));
-    strcpy(user, argv[1]);
+    char* user = malloc((strlen(user_in)+1) * sizeof(char));
+    strcpy(user, user_in);
 
     DIR* dir = opendir("./messages");
 
@@ -36,7 +36,7 @@ int hasmsg(int argc, char** argv) {
             char fp[strlen(user) + 13];
             strcpy(fp, "./messages/");
             strcat(fp, user);
-	    user_dir = opendir(fp);
+	        user_dir = opendir(fp);
             break;
 
         }
@@ -55,14 +55,14 @@ int hasmsg(int argc, char** argv) {
 
     while((user_file = readdir(user_dir)) != NULL) {
 
-	if(strcmp(".", user_file->d_name) != 0) {
-	    if(strcmp("..", user_file->d_name) != 0) {
-		printf("User exists and has messages.\n");
-		free(user);
-		closedir(user_dir);
-		return 0;
-	    }
-	}
+    	if(strcmp(".", user_file->d_name) != 0) {
+    	    if(strcmp("..", user_file->d_name) != 0) {
+        		printf("User exists and has messages.\n");
+        		free(user);
+        		closedir(user_dir);
+        		return 0;
+    	    }
+    	}
     }
 
     printf("User exists but has no messages.\n");

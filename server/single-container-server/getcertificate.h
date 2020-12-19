@@ -4,15 +4,12 @@
 #include <unistd.h>
 #include <dirent.h>
 
-int getcertificate(int argc, char** argv) {
+#define MAX_CERT_LEN 10000;
 
-    if(argc != 2) {
-        fprintf(stderr, "Incorrect number of arguments.\n");
-        return 1;
-    }
+char* getcertificate(char* username) {
 
-    char* user = malloc((strlen(argv[1])+1) * sizeof(char));
-    strcpy(user, argv[1]);
+    char* user = malloc((strlen(username)+1) * sizeof(char));
+    strcpy(user, username);
 
     DIR* dir = opendir("./certs");
 
@@ -20,7 +17,7 @@ int getcertificate(int argc, char** argv) {
         fprintf(stderr, "Issue opening certs directory.\n");
         free(user);
         closedir(dir);
-        return 2;
+        // return 2;
     }
 
     struct dirent* file;
@@ -29,20 +26,20 @@ int getcertificate(int argc, char** argv) {
 
     while((file = readdir(dir)) != NULL) {
 
-	if(strcmp(user, file->d_name) == 0) {
+        if(strcmp(user, file->d_name) == 0) {
 
-	    user_exists = 1;
+            user_exists = 1;
 
-	    char fp[strlen(user) + 13];
-	    strcpy(fp, "./certs/");
-	    strcat(fp, user);
-	    strcat(fp, "/");
-	    strcat(fp, user);
-	    strcat(fp, ".pem");
-	    cert_file = fopen(fp, "r");
-	    break;
+            char fp[strlen(user) + 13];
+            strcpy(fp, "./certs/");
+            strcat(fp, user);
+            strcat(fp, "/");
+            strcat(fp, user);
+            strcat(fp, ".pem");
+            cert_file = fopen(fp, "r");
+            break;
 
-	}
+        }
 
     }
 
@@ -51,13 +48,13 @@ int getcertificate(int argc, char** argv) {
     if(user_exists == 0) {
         fprintf(stderr, "User: %s does not exist.\n", user);
         free(user);
-        return 3;
+        // return 3;
     }
 
     if(cert_file == NULL) {
         fprintf(stderr, "User: %s does not have a certificate.\n", user);
         free(user);
-        return 3;
+        // return 3;
     }
 
 
@@ -68,10 +65,10 @@ int getcertificate(int argc, char** argv) {
     char* buffer = malloc(size * sizeof(char));
 
     if(buffer == NULL) {
-	fprintf(stderr, "Error allocating memory for buffer.\n");
-	free(user);
-	fclose(cert_file);
-	return 4;
+        fprintf(stderr, "Error allocating memory for buffer.\n");
+        free(user);
+        fclose(cert_file);
+        // return 4;
     }
 
     if(fread(buffer, 1, size, cert_file) != size) {
@@ -79,21 +76,22 @@ int getcertificate(int argc, char** argv) {
         free(user);
         free(buffer);
         fclose(cert_file);
-        return 5;
+        // return 5;
     }
 
-    if(fwrite(buffer, 1, size, stdout) != size) {
-        fprintf(stderr, "Error writing to stdout.\n");
-        free(user);
-        free(buffer);
-        fclose(cert_file);
-        return 6;
-    }
+    // if(fwrite(buffer, 1, size, stdout) != size) {
+    //     fprintf(stderr, "Error writing to stdout.\n");
+    //     free(user);
+    //     free(buffer);
+    //     fclose(cert_file);
+    //     return 6;
+    // }
+
 
 
     free(user);
-    free(buffer);
+    // free(buffer);
     fclose(cert_file);
-    return 0;
+    return buffer;
 
 }

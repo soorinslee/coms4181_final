@@ -399,10 +399,16 @@ struct CALL_RET* isuservalid_call(char* username, char* password) {
     // return 0 if valid, else anything else
     // do not allocate call_ret->content
     // you should allocate for call_ret though; the caller will free
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
+    call_ret->code = isuservalid(username, password);
+    return call_ret
 }
 
 // calls getcert and gets a response
-struct CALL_RET* getcert_call(char* csr_str) {
+struct CALL_RET* getcert_call(char* username, char* csr_str) {
     //todo Jason: fill this in; assume csr_str is the full string of the public key/csr
     // you probably want to save the csr to a .csr, get the intermediate cert, and sign the .csr
     // call_ret is a structure designed to make it simple if we eventually go to TCP
@@ -410,20 +416,89 @@ struct CALL_RET* getcert_call(char* csr_str) {
     // if 0 is returned, I expect content in the call_ret, otherwise it should be free
     // the content should be the full text of the certificate
     // so you can write the csr, sign it, write the output cert, and then read it to a string and stick it in content
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
+
+    // write csr
+    char* csr_fn = malloc(100 * sizeof(char));
+    strcat(csr_fn, "ca/intermediate/csr/")
+    strcat(csr_fn, username);
+    strcat(csr_fn, ".csr.pem");
+    FILE* csr_file = fopen(csr_fn, "w");
+
+    if(fwrite(csr_str, 1, strlen(csr_str), csr_file) != strlen(csr_str)) {
+        fprintf(stderr, "Error writing to csr_file.\n");
+        free(csr_fn);
+        fclose(csr_file);
+        call_ret->code = 1;
+        return call_ret;
+    }
+
+    // sign csr and generate cert
+    char* gen_cert = malloc(100 * sizeof(char));
+    strcat(gen_cert, "bash signCert.sh ");
+    strcat(gen_cert, username)
+    system(gen_cert);
+
+    // call setcertificate to move cert to user folder
+    char* cert_fn = malloc(100 * sizeof(char));
+    sprintf(cert_fn, "./ca/intermediate/certs/%s.cert.pem", user);
+    int in = open(cert_fn)
+    dup2(in, 0);
+    close(in);
+
+    if(setcertificate(user) != 0) {
+        fprintf(stderr, "Issue saving generated certificate.\n");
+        call_ret->code = 2;
+        return call_ret;
+    }
+
+    // call getcertificate to read cert from user folder
+    call_ret->code = 0;
+    call_ret->content = getcertificate(user);
+    return call_ret;
+
 }
 
 struct CALL_RET* changepw_call(char* username, char* password, char* new_password) {
     //todo Jason: this is similar to the isuservalid_call
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
+    call_ret->code = changepwd(username, password, new_password);
+    return call_ret
 }
 
 struct CALL_RET* hasmsg_call(char* username) {
     //todo Jason: checks if the user has messages; don't worry about authenticating
     // 0 if no messages, otherwise anything else
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
+    call_ret->code = hasmsg(username);
+    //from the design doc I had it returning 0 if user has messages
+    //and i if not obv can be changed easiliy just want to make sure
+    //it doesn't cause inconsistency
+    return call_ret
 }
 
 struct CALL_RET* iscertvalid_call(char* cert_str, char* sig_str) {
     //todo Jason: checks if this certificate is valid
     // 0 if yes, otherwise anything else
+    // struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    // if (call_ret == NULL) {
+    //     return NULL;
+    // }
+    //
+    // char* verify_cert = malloc(100 * sizeof(char));
+    // strcat(verify_cert, "bash signCert.sh ");
+    // strcat(verify_cert, username)
+    // //generate cert
+    // system(verify_cert);
 }
 
 struct CALL_RET* getrcptcert_call(char* recipient) {
@@ -437,19 +512,21 @@ struct CALL_RET* savemsg_call(char* sender, char* recipient, char* message) {
     //todo Jason: save a message for a recipient
     // 0 if it works, otherwise anything else
     // content should always be empty
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
+    call_ret->code = storemsg(sender, recipient, message);
+    return call_ret
 }
 
 struct CALL_RET* getmsg_call(char* recipient) {
     //todo Jason: pls lmk when you get to this one, this one is a bit complicated
 }
 
-////changepwd request
-//int changepwd_request(char* user, char* pass, char* new_pass) {
-//    return changepwd(user, pass, new_pass);
-//}
 //
 ////getcert request
-//int getcert_request(char* user, char* pass) {
+// int getcert_request(char* user, char* pass) {
 //
 //    if(isuservalid(user, password) != 0) {
 //        return 5;
@@ -477,4 +554,4 @@ struct CALL_RET* getmsg_call(char* recipient) {
 //    //totally sure how to go about using that output to send back to the user
 //
 //
-//}
+// }
