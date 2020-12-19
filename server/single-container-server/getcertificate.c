@@ -26,7 +26,7 @@ char* getcertificate(char* username) {
         fprintf(stderr, "Issue opening certs directory.\n");
         free(user);
         closedir(dir);
-        // return 2;
+        return NULL;
     }
 
     struct dirent* file;
@@ -57,13 +57,13 @@ char* getcertificate(char* username) {
     if(user_exists == 0) {
         fprintf(stderr, "User: %s does not exist.\n", user);
         free(user);
-        // return 3;
+        return NULL;
     }
 
     if(cert_file == NULL) {
         fprintf(stderr, "User: %s does not have a certificate.\n", user);
         free(user);
-        // return 3;
+        return NULL;
     }
 
 
@@ -77,7 +77,7 @@ char* getcertificate(char* username) {
         fprintf(stderr, "Error allocating memory for buffer.\n");
         free(user);
         fclose(cert_file);
-        // return 4;
+        return NULL;
     }
 
     if(fread(buffer, 1, size, cert_file) != size) {
@@ -85,7 +85,7 @@ char* getcertificate(char* username) {
         free(user);
         free(buffer);
         fclose(cert_file);
-        // return 5;
+        return NULL;
     }
 
     // if(fwrite(buffer, 1, size, stdout) != size) {
@@ -104,4 +104,3 @@ char* getcertificate(char* username) {
     return buffer;
 
 }
-

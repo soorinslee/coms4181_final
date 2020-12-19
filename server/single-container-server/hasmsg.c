@@ -15,11 +15,6 @@
 
 int hasmsg(char* user_in) {
 
-    // if(argc != 2) {
-    //     fprintf(stderr, "Incorrect number of arguments.\n");
-    //     return 4;
-    // }
-
     char* user = malloc((strlen(user_in)+1) * sizeof(char));
     strcpy(user, user_in);
 
@@ -80,4 +75,3 @@ int hasmsg(char* user_in) {
     return 1;
 
 }
-

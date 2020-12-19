@@ -535,5 +535,34 @@ struct CALL_RET* getmsg_call(char* recipient) {
     //   message: contents of mesage file
     //   certificate: contents of sender's certificate
     // }
-    return NULL;
+
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
+
+    struct MSG* msg_ret = malloc(sizeof(struct MSG));
+    if (msg_ret == NULL) {
+        return NULL;
+    }
+
+    if(hasmsg(recipient) != 0) {
+        call_ret->code = 1;
+        return call_ret;
+    }
+
+    msg_ret = getmsg(recipient);
+
+    char* certificate = getcertificate(msg_ret->sender);
+
+    cJSON* msg_obj = cJSON_CreateObject();
+    cJSON_AddStringToObject(response_obj, "message", msg_ret->message);
+    cJSON_AddStringToObject(response_obj, "certificate", certificate);
+
+    call_ret->code = 0;
+    call_ret->content = msg_obj;
+
+    return call_ret;
+
+
 }
