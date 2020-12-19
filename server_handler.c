@@ -519,6 +519,11 @@ struct CALL_RET* savemsg_call(char* sender, char* recipient, char* message) {
 }
 
 struct CALL_RET* getmsg_call(char* recipient) {
-
+    // TODO: call_ret->content
+    // cJSON_PrintUnformatted on
+    // {
+    //   message: contents of mesage file
+    //   certificate: contents of sender's certificate
+    // }
     return NULL;
 }
