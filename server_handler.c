@@ -600,7 +600,9 @@ struct CALL_RET* iscertvalid_call(char* cert_str, char* sig_str) {
     BIO_free(tbio);
 
     fclose()
-
+    if(remove("./temp_sig.txt") != 0) {
+        fprintf(stderr, "Issue removing temp_sig.txt\n");
+    }
     call_ret->code = ret;
     return call_ret;
 
