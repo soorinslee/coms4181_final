@@ -4,9 +4,18 @@
 
 int main() {
     char* json;
-    cJSON* mock_request = cJSON_Parse("{\"request_type\":1,\"url\":\"127.0.0.1\",\"port_no\":5000,\"content\":{\"request_type\":1,\"username\":\"username\",\"password\":\"password\"}}");
+    char request_content[100000] = {0};
+    FILE* f;
+    f = fopen("mock_request.json", "r");
+    fread(request_content, sizeof(char), 100000, f);
+    cJSON* mock_request = cJSON_Parse(request_content);
     cJSON* response;
     response = send_request(mock_request);
+    if (response == NULL) {
+        cJSON_Delete(mock_request);
+        printf("No response.\n");
+        return 0;
+    }
     json = cJSON_Print(response);
     printf(json);
     // make sure you deallocate objects when finished
