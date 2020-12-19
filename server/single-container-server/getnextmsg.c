@@ -22,7 +22,7 @@ struct MSG {
     char* message;
 };
 
-int getnextmsg(char* username) {
+struct MSG* getnextmsg(char* username) {
 
     struct MSG* msg_ret = malloc(sizeof(struct MSG));
     if (msg_ret == NULL) {
