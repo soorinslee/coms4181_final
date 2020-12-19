@@ -217,7 +217,7 @@ char* format_request_bytes(cJSON* request) {
         fprintf(stderr, "Could not get message content.\n");
         return NULL;
     }
-    msg_json_portion = cJSON_PrintUnformatted(request);
+    msg_json_portion = cJSON_PrintUnformatted(cJSON_GetObjectItemCaseSensitive(request, "content"));
     msg_len = strnlen(msg_json_portion, MAX_MSG_LEN);
     if (msg_len <= 0 || msg_len == MAX_MSG_LEN) {
         fprintf(stderr, "Message length not permitted.\n");
@@ -239,6 +239,10 @@ cJSON* format_response(char* bytes, int request_type) {
     const int http_resp_len = strlen(http_response);
     cJSON* response_obj;
 
+    if (strnlen(bytes, http_resp_len+2) == http_resp_len) {
+        fprintf(stderr, "Server returned null.\n");
+        return NULL;
+    }
     response_obj = cJSON_Parse(bytes+http_resp_len);
     if (response_obj == NULL) {
         fprintf(stderr, "Could not parse response.\n");

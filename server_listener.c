@@ -160,6 +160,11 @@ char* create_response_msg(cJSON* response) {
     char* error_msg_len = "{\"status_code\":413, \"response_type\":0, \"content\":{\"response_type\":0, \"message\":\"Return content exceeded maximum permitted length\"}}";
 
     // as we MUST return something, we return the error message if the content is too large
+    if (response == NULL) {
+        response_bytes = calloc(sizeof(char), http_len+1);
+        strcpy(response_bytes, http_part);
+        return response_bytes;
+    }
     response_msg = cJSON_PrintUnformatted(response);
     msglen = strnlen(response_msg, MAX_MSG_LEN);
     if (msglen == MAX_MSG_LEN) {
