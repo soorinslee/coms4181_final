@@ -16,8 +16,8 @@
 
 int storemsg(char* sender, char* rcpt, char* message) {
 
-    char* user = malloc((strlen(sender)+1) * sizeof(char));
-    strcpy(user, sender);
+    char* user = malloc((strlen(rcpt)+1) * sizeof(char));
+    strcpy(user, rcpt);
 
     DIR* dir = opendir("./messages");
 
@@ -119,4 +119,3 @@ int storemsg(char* sender, char* rcpt, char* message) {
     return 0;
 
 }
-

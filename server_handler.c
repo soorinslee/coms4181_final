@@ -468,8 +468,14 @@ struct CALL_RET* getcert_call(char* username, char* csr_str) {
     }
 
     // call getcertificate to read cert from user folder
-    call_ret->code = 0;
     call_ret->content = getcertificate(username);
+
+    if(call_ret->content == NULL) {
+        call_ret->code = 1;
+        return call_ret;
+    }
+
+    call_ret->code = 0;
     return call_ret;
 
 }
@@ -489,9 +495,7 @@ struct CALL_RET* hasmsg_call(char* username) {
         return NULL;
     }
     call_ret->code = hasmsg(username);
-    //from the design doc I had it returning 0 if user has messages
-    //and i if not obv can be changed easiliy just want to make sure
-    //it doesn't cause inconsistency
+
     return call_ret;
 }
 
@@ -508,6 +512,10 @@ struct CALL_RET* iscertvalid_call(char* cert_str, char* sig_str) {
     // strcat(verify_cert, username)
     // //generate cert
     // system(verify_cert);
+
+    // char* verify_cmd = calloc(1024, sizeof(char));
+    // sprintf(verify_cmd, "openssl verify -CAfile intermediate/certs/ca-chain.cert.pem intermediate/certs/%s.cert.pem", username);
+
     return NULL;
 }
 
@@ -516,7 +524,20 @@ struct CALL_RET* getrcptcert_call(char* recipient) {
     // 0 if the user is valid, otherwise anythign else
     // if 0 is returned, the certificate should be written as a string to content
     // otherwise content should be empty
-    return NULL;
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
+
+    call_ret->content = getcertificate(username);
+
+    if(call_ret->content == NULL) {
+        call_ret->code = 1;
+        return call_ret;
+    }
+
+    call_ret->code = 0;
+    return call_ret;
 }
 
 struct CALL_RET* savemsg_call(char* sender, char* recipient, char* message) {
@@ -551,7 +572,7 @@ struct CALL_RET* getmsg_call(char* recipient) {
         return call_ret;
     }
 
-    msg_ret = getmsg(recipient);
+    msg_ret = getnextmsg(recipient);
 
     char* certificate = getcertificate(msg_ret->sender);
 
