@@ -8,6 +8,9 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <openssl/pem.h>
+#include <openssl/cms.h>
+#include <openssl/err.h>
 #include "server_handler.h"
 #include "server/single-container-server/isuservalid.h"
 #include "server/single-container-server/changepwd.h"
@@ -506,17 +509,101 @@ struct CALL_RET* iscertvalid_call(char* cert_str, char* sig_str) {
     // if (call_ret == NULL) {
     //     return NULL;
     // }
-    //
-    // char* verify_cert = malloc(100 * sizeof(char));
-    // strcat(verify_cert, "bash signCert.sh ");
-    // strcat(verify_cert, username)
-    // //generate cert
-    // system(verify_cert);
 
-    // char* verify_cmd = calloc(1024, sizeof(char));
-    // sprintf(verify_cmd, "openssl verify -CAfile intermediate/certs/ca-chain.cert.pem intermediate/certs/%s.cert.pem", username);
+    struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
+    if (call_ret == NULL) {
+        return NULL;
+    }
 
-    return NULL;
+    FILE* temp_sig_file = fopen("./temp_sig.txt", "w");
+
+    if (temp_sig_file == NULL) {
+        fprintf(stderr, "Failed to open temp_sig_file\n");
+        call_ret->code=1;
+        return call_ret;
+    }
+
+    if(fwrite(sig_str, 1, strlen(sig_str), temp_sig_file) != strlen(sig_str)) {
+        fprintf(stderr, "Error writing to temp_sig_file.\n");
+        fclose(temp_sig_file);
+        call_ret->code = 1;
+        return call_ret;
+    }
+    fclose(temp_sig_file);
+
+    BIO *in = NULL, *out = NULL, *tbio = NULL, *cont = NULL;
+    X509_STORE *st = NULL;
+    X509 *cacert = NULL;
+    CMS_ContentInfo *cms = NULL;
+
+    int ret = 1;
+
+    OpenSSL_add_all_algorithms();
+    ERR_load_crypto_strings();
+
+    /* Set up trusted CA certificate store */
+
+    st = X509_STORE_new();
+
+    /* Read in CA certificate */
+    tbio = BIO_new_file("./ca/certs/ca.cert.pem", "r");
+
+    if (!tbio)
+        goto err;
+
+    cacert = PEM_read_bio_X509(tbio, NULL, 0, NULL);
+
+    if (!cacert)
+        goto err;
+
+    if (!X509_STORE_add_cert(st, cacert))
+        goto err;
+
+    /* Open message being verified */
+
+    in = BIO_new_file("temp_sig.txt", "r");
+
+    if (!in)
+        goto err;
+
+    /* parse message */
+    cms = SMIME_read_CMS(in, &cont);
+
+    if (!cms)
+        goto err;
+
+    /* File to output verified content to */
+    out = BIO_new_file("tmp_sig_out.txt", "w");
+    if (!out)
+        goto err;
+
+    if (!CMS_verify(cms, NULL, st, cont, out, 0)) {
+        fprintf(stderr, "Verification Failure\n");
+        goto err;
+    }
+
+    fprintf(stderr, "Verification Successful\n");
+
+    ret = 0;
+
+ err:
+
+    if (ret) {
+        fprintf(stderr, "Error Verifying Data\n");
+        ERR_print_errors_fp(stderr);
+    }
+
+    CMS_ContentInfo_free(cms);
+    X509_free(cacert);
+    BIO_free(in);
+    BIO_free(out);
+    BIO_free(tbio);
+
+    fclose()
+
+    call_ret->code = ret;
+    return call_ret;
+
 }
 
 struct CALL_RET* getrcptcert_call(char* recipient) {
