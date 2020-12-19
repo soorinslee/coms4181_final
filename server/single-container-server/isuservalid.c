@@ -94,7 +94,7 @@ int isuservalid(char* in_user, char* pass) {
         return 5;
     }
 
-    char* hashed_pwd = malloc(33 * sizeof(char));
+    char* hashed_pwd = malloc(65 * sizeof(char));
 
     if(hashed_pwd == NULL) {
         fprintf(stderr, "Error allocating memory for hashed_pwd.\n");
@@ -106,7 +106,8 @@ int isuservalid(char* in_user, char* pass) {
 
     fseek(pwd_file, 0, SEEK_SET);
 
-    if(fread(hashed_pwd, 1, 32, pwd_file) != 32) {
+
+    if(fread(hashed_pwd, 1, 64, pwd_file) != 64) {
         fprintf(stderr, "User's stored password corrupted.\n");
         free(user);
         free(pass);
@@ -115,7 +116,7 @@ int isuservalid(char* in_user, char* pass) {
         return 6;
     }
 
-    *(hashed_pwd + 32) = '\0';
+    *(hashed_pwd + 64) = '\0';
 
     if(strcmp(pass, hashed_pwd) != 0) {
         fprintf(stderr, "Password provided does not match stored password.\n");

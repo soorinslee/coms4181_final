@@ -54,6 +54,8 @@ struct CALL_RET* getmsg_call(char* recipient);
 cJSON* get_response_obj(cJSON* request) {
     int request_type;
 
+    fprintf(stdout, cJSON_Print(request));
+
     if (request == NULL) {
         return NULL;
     }
@@ -414,11 +416,18 @@ struct CALL_RET* getcert_call(char* username, char* csr_str) {
     }
 
     // write csr
-    char* csr_fn = malloc(100 * sizeof(char));
+    char* csr_fn = calloc(sizeof(char), 1024);
     strcat(csr_fn, "ca/intermediate/csr/");
     strcat(csr_fn, username);
     strcat(csr_fn, ".csr.pem");
     FILE* csr_file = fopen(csr_fn, "w");
+
+    if (csr_file == NULL) {
+        fprintf(stderr, "Failed to open %s\n", csr_fn);
+        free(csr_fn);
+        call_ret->code=1;
+        return call_ret;
+    }
 
     if(fwrite(csr_str, 1, strlen(csr_str), csr_file) != strlen(csr_str)) {
         fprintf(stderr, "Error writing to csr_file.\n");
@@ -427,15 +436,16 @@ struct CALL_RET* getcert_call(char* username, char* csr_str) {
         call_ret->code = 1;
         return call_ret;
     }
+    fclose(csr_file);
 
     // sign csr and generate cert
-    char* gen_cert = malloc(100 * sizeof(char));
+    char* gen_cert = calloc(sizeof(char), 1024);
     strcat(gen_cert, "bash signCert.sh ");
     strcat(gen_cert, username);
     system(gen_cert);
 
     // call setcertificate to move cert to user folder
-    char* cert_fn = malloc(100 * sizeof(char));
+    char* cert_fn = calloc(sizeof(char), 1024);
     sprintf(cert_fn, "./ca/intermediate/certs/%s.cert.pem", username);
     int in = open(cert_fn, O_RDONLY);
     dup2(in, 0);
