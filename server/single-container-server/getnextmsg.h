@@ -1,3 +1,3 @@
-struct MSG* getnextmsg(int argc, char** argv);
+struct MSG* getnextmsg(char* username);
 
 struct MSG;
