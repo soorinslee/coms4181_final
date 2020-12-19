@@ -6,6 +6,7 @@
 #include <time.h> 
 #include "sha256.h"
 #include "cJSON.h"
+#include "send_request.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -69,7 +70,7 @@ int hashpassword(char *  input){
   sha256_final(&ctx, password);
   print_hex(password,SHA256_BLOCK_SIZE);
 }
-int cjson_request(char * public_key){
+cJSON* cjson_request(char * public_key){
 
    char *out;
    cJSON *root, *content;
@@ -93,14 +94,14 @@ int cjson_request(char * public_key){
    cJSON_AddItemToObject(content, "public_key", cJSON_CreateString(public_key));
 
    /* print everything */
-   out = cJSON_Print(root);
-   printf("%s\n", out);
-   free(out);
+   //out = cJSON_Print(root);
+   //printf("%s\n", out);
+   //free(out);
 
    /* free all objects under root and root itself */
-   cJSON_Delete(root);
+   //cJSON_Delete(root);
 
-   return 0;
+   return root;
 }
 
 int save_certificate(char *certificate_string){
@@ -124,7 +125,7 @@ int save_certificate(char *certificate_string){
    return 0;
 }
 
-int parse_response(){
+int parse_response(cJSON *root){
   int i;
   cJSON *elem;
   cJSON *status_code;
@@ -132,16 +133,14 @@ int parse_response(){
   cJSON *response_type;
   cJSON *certificate;
   //char *json_string = "[{\"id\":\"25139\",\"date\":\"2016-10-27\",\"name\":\"Komfy Switch With Camera DKZ-201S\\/W Password Disclosure\"},{\"id\":\"25117\",\"date\":\"2016-10-24\",\"name\":\"NETDOIT weak password Vulnerability\"}]";
-  char *json_string = "[{\"status_code\":300,\"response_type\":1,\"content\":{\"response_type\":null,\"certificate\":\"null\"}}]";
-  cJSON *root = cJSON_Parse(json_string);
+  //char *json_string = "[{\"status_code\":300,\"response_type\":1,\"content\":{\"response_type\":null,\"certificate\":\"null\"}}]";
+  //cJSON *root = cJSON_Parse(json_string);
   int n = cJSON_GetArraySize(root);
-  elem = cJSON_GetArrayItem(root, 0);
-  status_code = cJSON_GetObjectItem(elem, "status_code");
+  status_code = cJSON_GetObjectItem(root, "status_code");
   printf("%d\n", status_code->valueint);
-  content = cJSON_GetObjectItem(elem, "content");
-  response_type = cJSON_GetObjectItemCaseSensitive(content, "response_type");
+  content = cJSON_GetObjectItem(root, "content");
+  response_type = cJSON_GetObjectItemCaseSensitive(root, "response_type");
   certificate = cJSON_GetObjectItem(content, "certificate");
-
   if (status_code->valueint <= 299 && status_code->valueint >= 200){
     if(cJSON_IsNumber(response_type) && certificate->valuestring !=NULL){
       save_certificate(certificate->valuestring);
@@ -161,10 +160,17 @@ int parse_response(){
     exit(1);
 
   }
+
+
 }
+
 
 int main(int argc, char *argv[])
 {
+  char* json;
+  cJSON* request = NULL;
+  cJSON* response;
+
     if (argc < 3){
     printf("\nError: Wrong commandline.\n");
     printf("\n");
@@ -224,10 +230,22 @@ int main(int argc, char *argv[])
 
     int status = system("./generate_key.sh");
     //readfile();
-    cjson_request(public_key);
+    request = cjson_request(public_key);
+    json = cJSON_Print(request);
+    printf("%s\n", json);
+
+    response = send_request(request);
+    json = cJSON_Print(response);
+    printf("%s\n", json);
+    // make sure you deallocate objects when finished
+
+
     //save_certificate(certificate_string);
     free(public_key);
-    parse_response();
+    parse_response(response);
+
+    cJSON_Delete(response);
+    free(json);
 
     
     return(0);
