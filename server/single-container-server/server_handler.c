@@ -170,7 +170,7 @@ cJSON* handle_request_2(cJSON* request) {
 
     // make calls
     call_return = hasmsg_call(username);
-    if (call_return->code != 0) {
+    if (call_return->code != 1) {
         cJSON_AddNumberToObject(response_obj, "status_code", 403);
         cJSON_AddStringToObject(content_obj, "error_msg", "Unread messages remain; cannot change password.\n");
         free(call_return);
@@ -395,10 +395,6 @@ cJSON* handle_request_5(cJSON* request) {
 
 // calls isuservalid and gets a response
 struct CALL_RET* isuservalid_call(char* username, char* password) {
-    //todo Jason: fill this in
-    // return 0 if valid, else anything else
-    // do not allocate call_ret->content
-    // you should allocate for call_ret though; the caller will free
     struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
     if (call_ret == NULL) {
         return NULL;
@@ -409,13 +405,6 @@ struct CALL_RET* isuservalid_call(char* username, char* password) {
 
 // calls getcert and gets a response
 struct CALL_RET* getcert_call(char* username, char* csr_str) {
-    //todo Jason: fill this in; assume csr_str is the full string of the public key/csr
-    // you probably want to save the csr to a .csr, get the intermediate cert, and sign the .csr
-    // call_ret is a structure designed to make it simple if we eventually go to TCP
-    // the first field is code: for this, 0 if successful, otherwise anything else
-    // if 0 is returned, I expect content in the call_ret, otherwise it should be free
-    // the content should be the full text of the certificate
-    // so you can write the csr, sign it, write the output cert, and then read it to a string and stick it in content
     struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
     if (call_ret == NULL) {
         return NULL;
@@ -463,18 +452,15 @@ struct CALL_RET* getcert_call(char* username, char* csr_str) {
 }
 
 struct CALL_RET* changepw_call(char* username, char* password, char* new_password) {
-    //todo Jason: this is similar to the isuservalid_call
     struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
     if (call_ret == NULL) {
         return NULL;
     }
     call_ret->code = changepwd(username, password, new_password);
-    return call_ret
+    return call_ret;
 }
 
 struct CALL_RET* hasmsg_call(char* username) {
-    //todo Jason: checks if the user has messages; don't worry about authenticating
-    // 0 if no messages, otherwise anything else
     struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
     if (call_ret == NULL) {
         return NULL;
@@ -483,7 +469,7 @@ struct CALL_RET* hasmsg_call(char* username) {
     //from the design doc I had it returning 0 if user has messages
     //and i if not obv can be changed easiliy just want to make sure
     //it doesn't cause inconsistency
-    return call_ret
+    return call_ret;
 }
 
 struct CALL_RET* iscertvalid_call(char* cert_str, char* sig_str) {
@@ -499,6 +485,7 @@ struct CALL_RET* iscertvalid_call(char* cert_str, char* sig_str) {
     // strcat(verify_cert, username)
     // //generate cert
     // system(verify_cert);
+    return NULL;
 }
 
 struct CALL_RET* getrcptcert_call(char* recipient) {
@@ -506,52 +493,19 @@ struct CALL_RET* getrcptcert_call(char* recipient) {
     // 0 if the user is valid, otherwise anythign else
     // if 0 is returned, the certificate should be written as a string to content
     // otherwise content should be empty
+    return NULL;
 }
 
 struct CALL_RET* savemsg_call(char* sender, char* recipient, char* message) {
-    //todo Jason: save a message for a recipient
-    // 0 if it works, otherwise anything else
-    // content should always be empty
     struct CALL_RET* call_ret = malloc(sizeof(struct CALL_RET));
     if (call_ret == NULL) {
         return NULL;
     }
     call_ret->code = storemsg(sender, recipient, message);
-    return call_ret
+    return call_ret;
 }
 
 struct CALL_RET* getmsg_call(char* recipient) {
-    //todo Jason: pls lmk when you get to this one, this one is a bit complicated
-}
 
-//
-////getcert request
-// int getcert_request(char* user, char* pass) {
-//
-//    if(isuservalid(user, password) != 0) {
-//        return 5;
-//    }
-//
-//    //generate cert
-//    system("bash signCert.sh client");
-//
-//    //replace stdin with cert file
-//    int in = open("./ca/intermediate/certs/final.cert.pem")
-//    dup2(in, 0);
-//    close(in);
-//
-//    if(setcertificate(user) != 0) {
-//        fprintf(stderr, "Issue saving generated certificate.\n");
-//        return 5;
-//    }
-//
-//    if(getcertificate(user) != 0) {
-//        fprintf(stderr, "Issue getting saved certificate.\n");
-//        return 5;
-//    }
-//
-//    //getcertificate writes the certificate to stdout but I'm not
-//    //totally sure how to go about using that output to send back to the user
-//
-//
-// }
+    return NULL;
+}
