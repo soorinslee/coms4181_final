@@ -135,7 +135,7 @@ cJSON* handle_request_1(cJSON* request) {
         return response_obj;
     }
     cJSON_AddNumberToObject(response_obj, "status_code", 200);
-    cJSON_AddItemToObject(response_obj, "certificate", cJSON_CreateString(call_return->content));
+    cJSON_AddItemToObject(content_obj, "certificate", cJSON_CreateString(call_return->content));
     free(call_return->content);
     free(call_return);
     return response_obj;
@@ -200,7 +200,7 @@ cJSON* handle_request_2(cJSON* request) {
         return response_obj;
     }
     cJSON_AddNumberToObject(response_obj, "status_code", 200);
-    cJSON_AddItemToObject(response_obj, "certificate", cJSON_CreateString(call_return->content));
+    cJSON_AddItemToObject(content_obj, "certificate", cJSON_CreateString(call_return->content));
     free(call_return->content);
     free(call_return);
     return response_obj;
@@ -599,7 +599,6 @@ struct CALL_RET* iscertvalid_call(char* cert_str, char* sig_str) {
     BIO_free(out);
     BIO_free(tbio);
 
-    fclose()
     if(remove("./temp_sig.txt") != 0) {
         fprintf(stderr, "Issue removing temp_sig.txt\n");
     }
@@ -618,7 +617,7 @@ struct CALL_RET* getrcptcert_call(char* recipient) {
         return NULL;
     }
 
-    call_ret->content = getcertificate(username);
+    call_ret->content = getcertificate(recipient);
 
     if(call_ret->content == NULL) {
         call_ret->code = 1;

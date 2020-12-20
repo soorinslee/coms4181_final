@@ -33,7 +33,6 @@ cJSON* send_request(cJSON* request) {
     int type = 0;
     cJSON* response;
 
-
     //check request type
     if (cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(request, "request_type")) == false){
         fprintf(stderr, "Invalid request: type not recognized.\n");

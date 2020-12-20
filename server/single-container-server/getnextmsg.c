@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include "getnextmsg.h"
 
-#define MAX_MSG_LEN 100000;
+#define MAX_MSG_LEN 100000
 
 struct MSG* getnextmsg(char* username) {
 
@@ -77,7 +77,7 @@ struct MSG* getnextmsg(char* username) {
 
     FILE* msg_file = fopen(min_msg, "r");
 
-    char* msg_str = malloc(MAX_MSG_LEN * sizeof(char));
+    char* msg_str = calloc(sizeof(char), MAX_MSG_LEN);
 
     if(msg_str == NULL) {
         fprintf(stderr, "Error allocating memory for msg_str.\n");
