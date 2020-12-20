@@ -153,7 +153,8 @@ int main(int argc, char *argv[]) {
         fseek(req1Sign, 0, SEEK_SET);
         signature = (char*) calloc(1, fsizeR1 + 1);
         fread(signature, 1, fsizeR1, req1Sign);
-        fclose(req1Sign);    
+        fclose(req1Sign);   
+        remove("sign.txt"); 
     }
 
     // Add signature to content
@@ -211,6 +212,7 @@ int main(int argc, char *argv[]) {
         msgContent = (char*) calloc(1, fsizeMsg + 1);
         fread(msgContent, 1, fsizeMsg, msgFile);
         fclose(msgFile);
+        remove("msg.txt");
     }
 
     cJSON *request2;
