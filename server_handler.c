@@ -666,13 +666,12 @@ struct CALL_RET* getmsg_call(char* recipient) {
     char* certificate = getcertificate(msg_ret->sender);
 
     cJSON* msg_obj = cJSON_CreateObject();
-    cJSON_AddStringToObject(response_obj, "message", msg_ret->message);
-    cJSON_AddStringToObject(response_obj, "certificate", certificate);
+    cJSON_AddStringToObject(msg_obj, "message", msg_ret->message);
+    cJSON_AddStringToObject(msg_obj, "certificate", certificate);
 
     call_ret->code = 0;
-    call_ret->content = msg_obj;
+    call_ret->content = cJSON_PrintUnformatted(msg_obj);
+    cJSON_Delete(msg_obj);
 
     return call_ret;
-
-
 }

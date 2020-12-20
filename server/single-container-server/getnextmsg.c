@@ -16,12 +16,6 @@
 
 #define MAX_MSG_LEN 100000;
 
-struct MSG {
-    int code;
-    char* sender;
-    char* message;
-};
-
 struct MSG* getnextmsg(char* username) {
 
     struct MSG* msg_ret = malloc(sizeof(struct MSG));
