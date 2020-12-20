@@ -180,11 +180,13 @@ int main(int argc, char *argv[])
     hashpassword(buffer);
     hex_to_string(password);
     
-	char *public_key = malloc( 1* sizeof(char));
-	FILE * fp;
+	 char *public_key = malloc( 1* sizeof(char));
+	 FILE * fp;
     char * line = NULL;
     size_t len = 0;
     ssize_t read;
+
+    int status = system("./generate_key.sh");
 
     fp = fopen("csr/csr.pem", "r");
     if (fp == NULL){
@@ -201,7 +203,7 @@ int main(int argc, char *argv[])
 
     fclose(fp);
 
-    int status = system("./generate_key.sh");
+    
     //readfile();
     request = cjson_request(public_key);
     json = cJSON_Print(request);
