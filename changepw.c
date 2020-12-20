@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
     size_t len = 0;
     ssize_t read;
 
-    fp = fopen("keys/public.pem", "r");
+    fp = fopen("csr/csr.pem", "r");
     if (fp == NULL){
         exit(EXIT_FAILURE);
     }
