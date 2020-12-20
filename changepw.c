@@ -10,7 +10,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#define _GNU_SOURCE
 
 BYTE password[SHA256_BLOCK_SIZE];
 BYTE new_password[SHA256_BLOCK_SIZE];
@@ -132,15 +131,15 @@ int parse_response(cJSON *root){
   cJSON *content;
   cJSON *response_type;
   cJSON *certificate;
+  printf("%s\n", cJSON_Print(root));
   //char *json_string = "[{\"id\":\"25139\",\"date\":\"2016-10-27\",\"name\":\"Komfy Switch With Camera DKZ-201S\\/W Password Disclosure\"},{\"id\":\"25117\",\"date\":\"2016-10-24\",\"name\":\"NETDOIT weak password Vulnerability\"}]";
   //char *json_string = "[{\"status_code\":300,\"response_type\":1,\"content\":{\"response_type\":null,\"certificate\":\"null\"}}]";
   //cJSON *root = cJSON_Parse(json_string);
   int n = cJSON_GetArraySize(root);
-  status_code = cJSON_GetObjectItem(root, "status_code");
-  printf("%d\n", status_code->valueint);
+  status_code = cJSON_GetObjectItemCaseSensitive(root, "status_code");
   content = cJSON_GetObjectItem(root, "content");
   response_type = cJSON_GetObjectItemCaseSensitive(root, "response_type");
-  certificate = cJSON_GetObjectItem(content, "certificate");
+  certificate = cJSON_GetObjectItemCaseSensitive(content, "certificate");
   if (status_code->valueint <= 299 && status_code->valueint >= 200){
     if(cJSON_IsNumber(response_type) && certificate->valuestring !=NULL){
       save_certificate(certificate->valuestring);
@@ -207,7 +206,7 @@ int main(int argc, char *argv[])
     hashnewpassword(buffer);
     hex_to_new_string(new_password);
     
-    char *public_key = malloc( 1* sizeof(char));
+    char public_key[10000] = {0};
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
@@ -218,30 +217,25 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    while ((read = getline(&line, &len, fp)) != -1) {
-        printf("Retrieved line of length %zu:\n", read);
-        public_key = realloc(public_key,(strlen(public_key)+read) * sizeof(char));
-        strcat(public_key,line);
-        //strcat(public_key,"\n");
-        printf("%s", line);
-    }
+    fread(public_key, sizeof(char), 10000, fp);
 
     fclose(fp);
 
-    int status = system("./generate_key.sh");
+    char * command = calloc(sizeof(char), 1024);
+    strcpy(command, "./generate_key.sh ");
+    strcat(command, username);
+    strcat(command, " ");
+    strcat(command, buffer);
+
+    int status = system(command);
     //readfile();
     request = cjson_request(public_key);
-    json = cJSON_Print(request);
-    printf("%s\n", json);
 
     response = send_request(request);
-    json = cJSON_Print(response);
-    printf("%s\n", json);
     // make sure you deallocate objects when finished
 
 
     //save_certificate(certificate_string);
-    free(public_key);
     parse_response(response);
 
     cJSON_Delete(response);

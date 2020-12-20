@@ -186,6 +186,8 @@ int main(int argc, char *argv[])
     char * command = calloc(sizeof(char), 1024);
     strcpy(command, "./generate_key.sh ");
     strcat(command, username);
+    strcat(command, " ");
+    strcat(command, buffer);
 
     int status = system(command);
 
