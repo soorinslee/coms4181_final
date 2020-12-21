@@ -10,6 +10,8 @@
 #include <openssl/pem.h>
 #include <openssl/cms.h>
 #include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/sha.h>
 #include "cJSON.h"
 #include "send_request.h"
 
@@ -94,54 +96,11 @@ int main(int argc, char *argv[]) {
     cJSON_AddItemToObject(content, "recipients", recipientsJSON);
     cJSON_AddStringToObject(content, "certificate", certContent);
 
-    // Create variables for CMS
-    BIO *in = NULL, *out = NULL, *certBIO = NULL, *keyBIO = NULL; 
-    X509 *cert = NULL;
-    EVP_PKEY *key = NULL;
-    CMS_ContentInfo *cms = NULL;
-    int flags = 0;
-    
-    OpenSSL_add_all_algorithms();
-    ERR_load_crypto_strings();
-
-    // Read in signer certficate and private key
-    certBIO = BIO_new_file("./certs/cert.pem", "r");
-    keyBIO = BIO_new_file("./keys/private.pem", "r"); 
-    if (!certBIO){
-	    goto err;
-    } 
-    if (!keyBIO){
-        goto err;
-    }
-    
-    cert = PEM_read_bio_X509(certBIO, NULL, 0, NULL);
-    key = PEM_read_bio_PrivateKey(keyBIO, NULL, 0, NULL);
-
-    if (!cert){
-        goto err;
-    }
-    if (!key){
-        goto err;
-    }
- 
-    // Read from certificate
-    in = BIO_new_file("./certs/cert.pem", "r");
-    
-    // Sign message
-    cms = CMS_sign(cert, key, NULL, in, flags);
-    if (!cms){
-        goto err;
-    }
-
-    out = BIO_new_file("sign.txt", "w");
-    if (!out){
-        goto err;
-    }
-
-    if (!SMIME_write_CMS(out, cms, in, flags)){
-	    goto err;
-    }
-
+    // Sign certificate using client's private key
+    system("openssl dgst -sign ./keys/private.pem -keyform PEM -sha256 -out sign.txt -binary ./certs/cert.pem");
+    //system("openssl x509 -pubkey -noout -in ./certs/cert.pem > pubkey.pem");
+    //system("openssl dgst -verify pubkey.pem -keyform PEM -sha256 -signature sign.txt -binary ./certs/cert.pem");
+        
     char *signature;
 
     // Get signature
@@ -154,11 +113,13 @@ int main(int argc, char *argv[]) {
         signature = (char*) calloc(1, fsizeR1 + 1);
         fread(signature, 1, fsizeR1, req1Sign);
         fclose(req1Sign);   
-        remove("sign.txt"); 
+        //remove("sign.txt"); 
     }
 
     // Add signature to content
     cJSON_AddStringToObject(content, "signature", signature);
+   
+    //printf("%s\n", cJSON_Print(request1));
 
     // Invoke send_request and get response
     cJSON* response1JSON = NULL;
@@ -175,31 +136,27 @@ int main(int argc, char *argv[]) {
         char *errorMsg = cJSON_Print(cJSON_GetObjectItemCaseSensitive(contentRes1, "error_msg"));
         fprintf(stderr, "ERROR: %s\n", errorMsg);
         cJSON_Delete(response1JSON);
+        cJSON_Delete(contentRes1);
         free(errorMsg);
         free(response1Code);
-	    CMS_ContentInfo_free(cms);
-        X509_free(cert);
-        EVP_PKEY_free(key);
-        BIO_free(in);
-        BIO_free(out);
-        BIO_free(certBIO);
-        BIO_free(keyBIO);
-        ERR_free_strings();
-        CRYPTO_cleanup_all_ex_data();
-        ERR_remove_state(0);
-        EVP_cleanup();
+        free(signature);
         return -1;
     }
    
     // Get certificates
     cJSON *certsRes1 = cJSON_GetObjectItemCaseSensitive(contentRes1, "certificates");
 
+    // Get message from stdin
+    FILE *msgFile;    
+    msgFile = freopen("msgUnencrypted.txt", "w", stdin);	
+    fclose(msgFile);
+
+/*
     // Sign message
-    BIO *msg = BIO_new_fp(stdin, BIO_NOCLOSE);
-    CMS_ContentInfo *cmsMsg = NULL;
-    cmsMsg = CMS_sign(cert, key, NULL, msg, flags);
-    BIO *outMsg = BIO_new_file("msg.txt", "w");
-    SMIME_write_CMS(outMsg, cmsMsg, msg, flags);
+    system("openssl dgst -sign ./keys/signer.pem -keyform PEM -sha256 -out msg.txt -binary msgUnencrypted.txt");
+   
+    // Encrypt message
+    system("openssl pkeyutl -encrypt -in msgUnencrypted.txt -pubin -inkey pubkey-Steve.pem -out msg.txt")
 
     char *msgContent;
 
@@ -212,34 +169,65 @@ int main(int argc, char *argv[]) {
         msgContent = (char*) calloc(1, fsizeMsg + 1);
         fread(msgContent, 1, fsizeMsg, msgFile);
         fclose(msgFile);
-        remove("msg.txt");
-    }
+        //remove("msg.txt");
+    }*/
 
     cJSON *request2;
     cJSON *response2JSON;
  
     for (int i = 0 ; i < cJSON_GetArraySize(certsRes1) ; i++){
-	    // Create Request 2
+	// Create Request 2
         request2 = cJSON_CreateObject();
         cJSON *subCert = cJSON_GetArrayItem(certsRes1, i);
-	    cJSON *certRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "certificate");
+	cJSON *certRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "certificate");
         int requestTypeR2 = 4;
         cJSON *contentR2 = cJSON_CreateObject();
         cJSON_AddStringToObject(request2, "url", url);
         cJSON_AddNumberToObject(request2, "port-no", portNumber);
-	    cJSON_AddNumberToObject(request2, "request-type", requestTypeR2);
+	cJSON_AddNumberToObject(request2, "request-type", requestTypeR2);
         cJSON_AddItemToObject(request2, "content", contentR2);
     	cJSON_AddNumberToObject(contentR2, "request-type", requestTypeR2);
-	    cJSON_AddItemToObject(contentR2, "certificate", certRes1JSON);
+	cJSON_AddItemToObject(contentR2, "certificate", certRes1JSON);
     	cJSON_AddStringToObject(contentR2, "username", username);
         cJSON *recpRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "username");
         cJSON_AddItemToObject(contentR2, "recipient", recpRes1JSON);
 
+	// Sign message
+    	system("openssl dgst -sign ./keys/private.pem -keyform PEM -sha256 -out msg.txt -binary msgUnencrypted.txt");
+
+	// Get recipient's public key from certificate
+        FILE *recpCertFile = fopen("recpCert.pem", "w");
+        char *recpCertString = cJSON_Print(certRes1JSON);
+        char *certPt = recpCertString;
+        certPt++;
+        certPt[strlen(certPt)-1] = 0;
+	fprintf(recpCertFile, "%s", certPt);
+	system("openssl x509 -pubkey -noout -in recpCert.pem > pubkey.pem");
+        fclose(recpCertFile);
+        free(recpCertString);
+   
+    	// Encrypt message
+    	system("openssl pkeyutl -encrypt -in msgUnencrypted.txt -pubin -inkey recpCert.pem -out msg.txt");
+
+   	char *msgContent;
+
+    	// Get signed message
+    	{
+            FILE *msgFile = fopen("msg.txt", "r");
+            fseek(msgFile, 0, SEEK_END);
+            long fsizeMsg = ftell(msgFile);
+            fseek(msgFile, 0, SEEK_SET);
+            msgContent = (char*) calloc(1, fsizeMsg + 1);
+            fread(msgContent, 1, fsizeMsg, msgFile);
+            fclose(msgFile);
+            //remove("msg.txt");
+    	}
+
         // Add encrypted and signed message
         cJSON_AddStringToObject(contentR2, "message", msgContent);
 
-	    // Add signature
-	    cJSON_AddStringToObject(contentR2, "signature", signature);
+	// Add signature
+	cJSON_AddStringToObject(contentR2, "signature", signature);
        
         // Send Request 2
         response2JSON = send_request(request2);
@@ -253,80 +241,37 @@ int main(int argc, char *argv[]) {
         if (strcmp(response2Code, "200") != 0){
             char *errorMsg2 = cJSON_Print(cJSON_GetObjectItemCaseSensitive(contentRes2, "error_msg"));
             fprintf(stderr, "ERROR: %s\n", errorMsg2);
-            cJSON_Delete(response1JSON);
             cJSON_Delete(response2JSON);
+            cJSON_Delete(response1JSON);
             cJSON_Delete(request2);
             cJSON_Delete(contentRes1);
-	        cJSON_Delete(contentRes2);
-            free(errorMsg2);
+	    cJSON_Delete(contentRes2);
             free(response1Code);
             free(response2Code);
             free(signature);
+            free(errorMsg2);
             free(msgContent);
-    	    CMS_ContentInfo_free(cms);
-	        CMS_ContentInfo_free(cmsMsg);
-            X509_free(cert);
-            EVP_PKEY_free(key);
-            BIO_free(in);
-            BIO_free(out);
-            BIO_free(certBIO);
-            BIO_free(keyBIO);
-	        BIO_free(msg);
-            BIO_free(outMsg);
-            ERR_free_strings();
-            CRYPTO_cleanup_all_ex_data();
-            ERR_remove_state(0);
-            EVP_cleanup();
+            remove("pubkey.pem");
             return -1;
         }
 	
-	    // Output delivery message
+	// Output delivery message
         char *recpSuccess = cJSON_Print(recpRes1JSON);
         fprintf(stdout, "Message to %s successfully delivered\n", recpSuccess);
 
         cJSON_Delete(request2);
         cJSON_Delete(response2JSON);
         cJSON_Delete(contentRes2);
-	    free(response2Code);
+	free(response2Code);
         free(recpSuccess);
+        free(msgContent);
+        remove("pubkey.pem");
     } 
 
     // Free/Delete everything
     free(signature);
     free(response1Code);
-    free(msgContent);
     cJSON_Delete(response1JSON);
     cJSON_Delete(contentRes1);
-    CMS_ContentInfo_free(cms);
-    CMS_ContentInfo_free(cmsMsg);
-    X509_free(cert);
-    EVP_PKEY_free(key);
-    BIO_free(in);
-    BIO_free(out);
-    BIO_free(certBIO);
-    BIO_free(keyBIO);
-    BIO_free(msg);
-    BIO_free(outMsg);
-    ERR_free_strings();
-    CRYPTO_cleanup_all_ex_data();
-    ERR_remove_state(0);
-    EVP_cleanup();
     return 1;
-
-    err:
-        fprintf(stderr, "ERROR: ");
-        ERR_print_errors_fp(stderr);
-	    cJSON_Delete(request1);
-	    CMS_ContentInfo_free(cms);
-        X509_free(cert);
-        EVP_PKEY_free(key);
-        BIO_free(in);
-        BIO_free(out);
-        BIO_free(certBIO);
-        BIO_free(keyBIO);
-        ERR_free_strings();
-        CRYPTO_cleanup_all_ex_data();
-        ERR_remove_state(0);
-        EVP_cleanup();
-        return -1;
 }
