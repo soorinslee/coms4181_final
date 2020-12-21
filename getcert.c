@@ -110,7 +110,6 @@ int parse_response(cJSON *root){
 	cJSON *content;
 	cJSON *response_type;
 	cJSON *certificate;
-	printf("%s\n", cJSON_Print(root));
 	//char *json_string = "[{\"id\":\"25139\",\"date\":\"2016-10-27\",\"name\":\"Komfy Switch With Camera DKZ-201S\\/W Password Disclosure\"},{\"id\":\"25117\",\"date\":\"2016-10-24\",\"name\":\"NETDOIT weak password Vulnerability\"}]";
 	//char *json_string = "[{\"status_code\":300,\"response_type\":1,\"content\":{\"response_type\":null,\"certificate\":\"null\"}}]";
 	//cJSON *root = cJSON_Parse(json_string);
