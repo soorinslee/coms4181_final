@@ -16,6 +16,8 @@ add_executable(getcert getcert.c send_request.c send_request.h cJSON.h cJSON.c s
 
 add_executable(changepw changepw.c send_request.c send_request.h cJSON.h cJSON.c sha256.c sha256.h)
 
+add_executable(sendmsg sendmsg.c cJSON.h cJSON.c send_request.c send_request.h)
+
 target_link_libraries(send_request PUBLIC ssl crypto)
 
 target_link_libraries(server PUBLIC ssl crypto)
@@ -23,3 +25,5 @@ target_link_libraries(server PUBLIC ssl crypto)
 target_link_libraries(getcert PUBLIC ssl crypto)
 
 target_link_libraries(changepw PUBLIC ssl crypto)
+
+target_link_libraries(sendmsg PUBLIC ssl crypto)

@@ -80,24 +80,22 @@ int main(int argc, char *argv[]) {
     cJSON *request1 = cJSON_CreateObject();
     cJSON *content = cJSON_CreateObject();
     cJSON_AddStringToObject(request1, "url", url);
-    cJSON_AddNumberToObject(request1, "port-no", portNumber);
-    cJSON_AddNumberToObject(request1, "request-type", requestType);
+    cJSON_AddNumberToObject(request1, "port_no", portNumber);
+    cJSON_AddNumberToObject(request1, "request_type", requestType);
     cJSON_AddItemToObject(request1, "content", content);
-    cJSON_AddNumberToObject(content, "request-type", requestType);
+    cJSON_AddNumberToObject(content, "request_type", requestType);
     cJSON_AddStringToObject(content, "username", username);
 
     // Add all recipients
     for (size_t index = 0; index < n; index++){
-        cJSON *recipientJSON = cJSON_CreateObject();
-        cJSON_AddStringToObject(recipientJSON, "username", recipients[index]);
-        cJSON_AddItemToArray(recipientsJSON, recipientJSON);
+        cJSON_AddItemToArray(recipientsJSON, cJSON_CreateString(recipients[index]));
     }
     
     cJSON_AddItemToObject(content, "recipients", recipientsJSON);
     cJSON_AddStringToObject(content, "certificate", certContent);
 
     // Sign certificate using client's private key
-    system("openssl dgst -sign ./keys/private.pem -keyform PEM -sha256 -out sign.txt -binary ./certs/cert.pem");
+    system("openssl dgst -sign ./keys/key.pem -passin pass:password -keyform PEM -sha256 -out sign.txt -binary ./certs/cert.pem");
     //system("openssl x509 -pubkey -noout -in ./certs/cert.pem > pubkey.pem");
     //system("openssl dgst -verify pubkey.pem -keyform PEM -sha256 -signature sign.txt -binary ./certs/cert.pem");
         
@@ -130,7 +128,7 @@ int main(int argc, char *argv[]) {
     cJSON *contentRes1 = cJSON_DetachItemFromObjectCaseSensitive(response1JSON, "content"); 
 
     // Check for response status code
-    char* response1Code = cJSON_Print(cJSON_GetObjectItemCaseSensitive(response1JSON, "status-code"));
+    char* response1Code = cJSON_Print(cJSON_GetObjectItemCaseSensitive(response1JSON, "status_code"));
 
     if (strcmp(response1Code, "200") != 0){
         char *errorMsg = cJSON_Print(cJSON_GetObjectItemCaseSensitive(contentRes1, "error_msg"));
@@ -183,31 +181,28 @@ int main(int argc, char *argv[]) {
         int requestTypeR2 = 4;
         cJSON *contentR2 = cJSON_CreateObject();
         cJSON_AddStringToObject(request2, "url", url);
-        cJSON_AddNumberToObject(request2, "port-no", portNumber);
-	cJSON_AddNumberToObject(request2, "request-type", requestTypeR2);
+        cJSON_AddNumberToObject(request2, "port_no", portNumber);
+	cJSON_AddNumberToObject(request2, "request_type", requestTypeR2);
         cJSON_AddItemToObject(request2, "content", contentR2);
-    	cJSON_AddNumberToObject(contentR2, "request-type", requestTypeR2);
+    	cJSON_AddNumberToObject(contentR2, "request_type", requestTypeR2);
 	cJSON_AddItemToObject(contentR2, "certificate", certRes1JSON);
     	cJSON_AddStringToObject(contentR2, "username", username);
         cJSON *recpRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "username");
         cJSON_AddItemToObject(contentR2, "recipient", recpRes1JSON);
 
 	// Sign message
-    	system("openssl dgst -sign ./keys/private.pem -keyform PEM -sha256 -out msg.txt -binary msgUnencrypted.txt");
+    	system("openssl dgst -sign ./keys/key.pem -passin pass:password -keyform PEM -sha256 -out msg.txt -binary msgUnencrypted.txt");
 
 	// Get recipient's public key from certificate
         FILE *recpCertFile = fopen("recpCert.pem", "w");
-        char *recpCertString = cJSON_Print(certRes1JSON);
-        char *certPt = recpCertString;
-        certPt++;
-        certPt[strlen(certPt)-1] = 0;
-	fprintf(recpCertFile, "%s", certPt);
-	system("openssl x509 -pubkey -noout -in recpCert.pem > pubkey.pem");
+        char *recpCertString = certRes1JSON->valuestring;
+	fprintf(recpCertFile, "%s", recpCertString);
+	system("openssl rsa -pubout -in keys/key.pem -passin pass:password >keys/key_public.pem");
         fclose(recpCertFile);
         free(recpCertString);
    
     	// Encrypt message
-    	system("openssl pkeyutl -encrypt -in msgUnencrypted.txt -pubin -inkey recpCert.pem -out msg.txt");
+    	system("openssl pkeyutl -encrypt -in msgUnencrypted.txt -pubin -inkey keys/key_public.pem -out msg.txt");
 
    	char *msgContent;
 
@@ -236,7 +231,7 @@ int main(int argc, char *argv[]) {
     	cJSON *contentRes2 = cJSON_DetachItemFromObjectCaseSensitive(response2JSON, "content"); 
 
         // Check for response status code
-        char* response2Code = cJSON_Print(cJSON_GetObjectItemCaseSensitive(response2JSON, "status-code"));
+        char* response2Code = cJSON_Print(cJSON_GetObjectItemCaseSensitive(response2JSON, "status_code"));
 
         if (strcmp(response2Code, "200") != 0){
             char *errorMsg2 = cJSON_Print(cJSON_GetObjectItemCaseSensitive(contentRes2, "error_msg"));
@@ -265,7 +260,7 @@ int main(int argc, char *argv[]) {
 	free(response2Code);
         free(recpSuccess);
         free(msgContent);
-        remove("pubkey.pem");
+        remove("key/key_public.pem");
     } 
 
     // Free/Delete everything
