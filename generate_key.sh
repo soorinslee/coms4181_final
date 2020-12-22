@@ -11,4 +11,4 @@ openssl genrsa -passout pass:password -aes256 -out keys/key.pem 4096
 
 command="/CN=$USER/O=./C=US/ST=New York"
 
-openssl req -config openssl.cnf -passin pass:password -subj "$command" -key keys/key.pem -new -sha256 -out csr/csr.pem
+openssl req -config openssl.cnf -extensions client_cert -passin pass:password -subj "$command" -key keys/key.pem -new -sha256 -out csr/csr.pem
