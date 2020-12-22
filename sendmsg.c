@@ -243,13 +243,12 @@ int main(int argc, char *argv[]) {
         char msgHex[strlen(msgContent)*3];
         memset(msgHex,0,sizeof(msgHex));
  
-        int i, j;
-        for(i=0, j=0; i<strlen(msgContent); i++, j+=2)
+        int a, b;
+        for(a=0, b=0; i<strlen(msgContent); a++, b+=2)
         { 
-            sprintf((char*)msgHex+j,"%02X",msgContent[i]);
+            sprintf((char*)msgHex+b,"%02X",msgContent[a]);
         }
         msgHex[j]='\0';
-        printf("%s\n", msgHex);
 
         // Add encrypted and signed message
         cJSON_AddStringToObject(contentR2, "message", msgHex);
