@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
         cJSON *recpRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "username");
         cJSON_AddItemToObject(contentR2, "recipient", recpRes1JSON);
 
-	    // Get recipient's public key from certificate
+	    // Store recipient's certificate in a file
         FILE *recpCertFile = fopen("recpCert.pem", "w");
         char *recpCertString = certRes1JSON->valuestring;
 	    fprintf(recpCertFile, "%s", recpCertString);
