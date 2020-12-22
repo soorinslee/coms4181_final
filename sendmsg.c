@@ -15,15 +15,8 @@
 #include "cJSON.h"
 #include "send_request.h"
 
-#define MAX_NUMBER_RECIPIENTS 1000
-
-/* 
- * Program arugments:
- * Usernames: an arbitrary (within reasonable bound) number of usernames
- * Ex) "name1,name2,name3" 
- * Server URL: string
- * Port No: int, optional
- */
+#define MAX_NUMBER_RECIPIENTS 1024
+#define BUF_SIZE 1024
 
 int main(int argc, char *argv[]) {
     // Check for usernames and server URL
@@ -51,6 +44,48 @@ int main(int argc, char *argv[]) {
     fread(certContent, 1, fsize, certFile);
     fclose(certFile);
 
+    // Sign certificate using client's private key
+    system("openssl dgst -sign ./keys/key.pem -passin pass:password -keyform PEM -sha256 -out sign.txt -binary ./certs/cert.pem");
+     
+    char *signature;
+
+    // Get signature
+    {
+        FILE *req1Sign;
+        req1Sign = fopen("sign.txt", "r");
+
+        if (req1Sign == NULL){
+            printf("ERROR: Unable to get signature\n");            
+            return -1;
+        }
+
+        fseek(req1Sign, 0, SEEK_END);
+        long fsizeR1 = ftell(req1Sign);
+        fseek(req1Sign, 0, SEEK_SET);
+        signature = (char*) calloc(1, fsizeR1 + 1);
+        fread(signature, 1, fsizeR1, req1Sign);
+        fclose(req1Sign);   
+	
+	    // Check for signature
+        if (strlen(signature) == 0){
+            printf("ERROR: Unable to get signature\n");
+            free(signature);
+            return -1;
+        }        
+        remove("sign.txt"); 
+    }
+
+    // Convert signature to hex
+    char signHex[strlen(signature)*3];
+    memset(signHex,0,sizeof(signHex));
+ 
+    int i, j;
+    for(i=0, j=0; i<strlen(signature); i++, j+=2)
+    { 
+        sprintf((char*)signHex+j,"%02X",signature[i]);
+    }
+    signHex[j]='\0';
+
     // Get username
     struct passwd *pwd;
     pwd = getpwuid(getuid()); 
@@ -70,7 +105,7 @@ int main(int argc, char *argv[]) {
     char *recipientsString = argv[1];
     const char *delims = ",\n";
     size_t n = 0;
-    for (recipientsString = strtok(recipientsString, delims); recipientsString && n < MAX_NUMBER_RECIPIENTS; recipientsString = strtok(NULL, delims)){
+    for (recipientsString = strtok(recipientsString, delims); recipientsString && n < MAX_NUMBER_RECIPIENTS; recipientsString = strtok(NULL, delims))    {
         strcpy(recipients[n++], recipientsString);
     }  
 
@@ -94,30 +129,8 @@ int main(int argc, char *argv[]) {
     cJSON_AddItemToObject(content, "recipients", recipientsJSON);
     cJSON_AddStringToObject(content, "certificate", certContent);
 
-    // Sign certificate using client's private key
-    system("openssl dgst -sign ./keys/key.pem -passin pass:password -keyform PEM -sha256 -out sign.txt -binary ./certs/cert.pem");
-    //system("openssl x509 -pubkey -noout -in ./certs/cert.pem > pubkey.pem");
-    //system("openssl dgst -verify pubkey.pem -keyform PEM -sha256 -signature sign.txt -binary ./certs/cert.pem");
-        
-    char *signature;
-
-    // Get signature
-    {
-        FILE *req1Sign;
-        req1Sign = fopen("sign.txt", "r");
-        fseek(req1Sign, 0, SEEK_END);
-        long fsizeR1 = ftell(req1Sign);
-        fseek(req1Sign, 0, SEEK_SET);
-        signature = (char*) calloc(1, fsizeR1 + 1);
-        fread(signature, 1, fsizeR1, req1Sign);
-        fclose(req1Sign);   
-        //remove("sign.txt"); 
-    }
-
     // Add signature to content
-    cJSON_AddStringToObject(content, "signature", signature);
-   
-    //printf("%s\n", cJSON_Print(request1));
+    cJSON_AddStringToObject(content, "signature", signHex);
 
     // Invoke send_request and get response
     cJSON* response1JSON = NULL;
@@ -145,84 +158,104 @@ int main(int argc, char *argv[]) {
     cJSON *certsRes1 = cJSON_GetObjectItemCaseSensitive(contentRes1, "certificates");
 
     // Get message from stdin
-    FILE *msgFile;    
-    msgFile = freopen("msgUnencrypted.txt", "w", stdin);	
-    fclose(msgFile);
+    FILE *msgFp = fopen("msgUnencrypted.txt", "w");
+    int read;
+    char *msgCont[BUF_SIZE];
 
-/*
+    while ((read = fread(msgCont, 1, BUF_SIZE, stdin))) {
+        fwrite(msgCont, read, 1, msgFp);
+    }
+ 
+    fclose(msgFp);
+
     // Sign message
-    system("openssl dgst -sign ./keys/signer.pem -keyform PEM -sha256 -out msg.txt -binary msgUnencrypted.txt");
-   
-    // Encrypt message
-    system("openssl pkeyutl -encrypt -in msgUnencrypted.txt -pubin -inkey pubkey-Steve.pem -out msg.txt")
-
-    char *msgContent;
-
-    // Get signed message
-    {
-        FILE *msgFile = fopen("msg.txt", "r");
-        fseek(msgFile, 0, SEEK_END);
-        long fsizeMsg = ftell(msgFile);
-        fseek(msgFile, 0, SEEK_SET);
-        msgContent = (char*) calloc(1, fsizeMsg + 1);
-        fread(msgContent, 1, fsizeMsg, msgFile);
-        fclose(msgFile);
-        //remove("msg.txt");
-    }*/
+    system("openssl smime -sign -in msgUnencrypted.txt -out msgSigned.txt -signer ./certs/cert.pem -inkey ./keys/key.pem -text");
+    
+    remove("msgUnencrypted.txt");
 
     cJSON *request2;
     cJSON *response2JSON;
  
     for (int i = 0 ; i < cJSON_GetArraySize(certsRes1) ; i++){
-	// Create Request 2
+	    / Create Request 2
         request2 = cJSON_CreateObject();
         cJSON *subCert = cJSON_GetArrayItem(certsRes1, i);
-	cJSON *certRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "certificate");
+	    cJSON *certRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "certificate");
         int requestTypeR2 = 4;
         cJSON *contentR2 = cJSON_CreateObject();
         cJSON_AddStringToObject(request2, "url", url);
         cJSON_AddNumberToObject(request2, "port_no", portNumber);
-	cJSON_AddNumberToObject(request2, "request_type", requestTypeR2);
+	    cJSON_AddNumberToObject(request2, "request_type", requestTypeR2);
         cJSON_AddItemToObject(request2, "content", contentR2);
     	cJSON_AddNumberToObject(contentR2, "request_type", requestTypeR2);
-	cJSON_AddItemToObject(contentR2, "certificate", certRes1JSON);
+	    cJSON_AddItemToObject(contentR2, "certificate", certRes1JSON);
     	cJSON_AddStringToObject(contentR2, "username", username);
         cJSON *recpRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "username");
         cJSON_AddItemToObject(contentR2, "recipient", recpRes1JSON);
 
-	// Sign message
-    	system("openssl dgst -sign ./keys/key.pem -passin pass:password -keyform PEM -sha256 -out msg.txt -binary msgUnencrypted.txt");
-
-	// Get recipient's public key from certificate
+	    // Get recipient's public key from certificate
         FILE *recpCertFile = fopen("recpCert.pem", "w");
         char *recpCertString = certRes1JSON->valuestring;
-	fprintf(recpCertFile, "%s", recpCertString);
-	system("openssl rsa -pubout -in keys/key.pem -passin pass:password >keys/key_public.pem");
+	    fprintf(recpCertFile, "%s", recpCertString);
         fclose(recpCertFile);
-        free(recpCertString);
-   
+
     	// Encrypt message
-    	system("openssl pkeyutl -encrypt -in msgUnencrypted.txt -pubin -inkey keys/key_public.pem -out msg.txt");
+ 	    system("openssl smime -encrypt -out msg.txt -in msgSigned.txt recpCert.pem");
 
-   	char *msgContent;
+    	char *msgContent;
 
-    	// Get signed message
+    	// Get signed and encrypted message
     	{
             FILE *msgFile = fopen("msg.txt", "r");
+	   
+	        if (msgFile == NULL){
+	    	    printf("ERROR: Unable to get message\n");
+                cJSON_Delete(response1JSON);
+                cJSON_Delete(contentRes1);
+                free(response1Code);
+                free(signature);
+                cJSON_Delete(request2);
+                return -1;
+            }
+
             fseek(msgFile, 0, SEEK_END);
             long fsizeMsg = ftell(msgFile);
             fseek(msgFile, 0, SEEK_SET);
             msgContent = (char*) calloc(1, fsizeMsg + 1);
             fread(msgContent, 1, fsizeMsg, msgFile);
             fclose(msgFile);
-            //remove("msg.txt");
+
+            // Check for signature
+            if (strlen(msgContent) == 0){
+                printf("ERROR: Unable to get message\n");
+                cJSON_Delete(response1JSON);
+                cJSON_Delete(contentRes1);
+                free(response1Code);
+                free(msgContent);
+                free(signature);
+                cJSON_Delete(request2);
+                return -1;
+            }        
+
     	}
 
-        // Add encrypted and signed message
-        cJSON_AddStringToObject(contentR2, "message", msgContent);
+	    // Convert message to hex
+        char msgHex[strlen(msgContent)*3];
+        memset(msgHex,0,sizeof(msgHex));
+ 
+        int i, j;
+        for(i=0, j=0; i<strlen(msgContent); i++, j+=2)
+        { 
+            sprintf((char*)msgHex+j,"%02X",msgContent[i]);
+        }
+        msgHex[j]='\0';
+        printf("%s\n", msgHex);
 
-	// Add signature
-	cJSON_AddStringToObject(contentR2, "signature", signature);
+        // Add encrypted and signed message
+        cJSON_AddStringToObject(contentR2, "message", msgHex);
+
+        // Add signature
+        cJSON_AddStringToObject(contentR2, "signature", signature);
        
         // Send Request 2
         response2JSON = send_request(request2);
@@ -240,27 +273,27 @@ int main(int argc, char *argv[]) {
             cJSON_Delete(response1JSON);
             cJSON_Delete(request2);
             cJSON_Delete(contentRes1);
-	    cJSON_Delete(contentRes2);
+	        cJSON_Delete(contentRes2);
             free(response1Code);
             free(response2Code);
             free(signature);
             free(errorMsg2);
             free(msgContent);
-            remove("pubkey.pem");
             return -1;
         }
 	
-	// Output delivery message
+	    // Output delivery message
         char *recpSuccess = cJSON_Print(recpRes1JSON);
         fprintf(stdout, "Message to %s successfully delivered\n", recpSuccess);
 
         cJSON_Delete(request2);
         cJSON_Delete(response2JSON);
         cJSON_Delete(contentRes2);
-	free(response2Code);
+    	free(response2Code);
         free(recpSuccess);
         free(msgContent);
-        remove("key/key_public.pem");
+        remove("recpCert.pem");
+        remove("msg.txt");
     } 
 
     // Free/Delete everything
@@ -268,5 +301,6 @@ int main(int argc, char *argv[]) {
     free(response1Code);
     cJSON_Delete(response1JSON);
     cJSON_Delete(contentRes1);
+    remove("msgSigned.txt");
     return 1;
 }
