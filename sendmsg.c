@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
     cJSON *response2JSON;
  
     for (int i = 0 ; i < cJSON_GetArraySize(certsRes1) ; i++){
-	    / Create Request 2
+	    // Create Request 2
         request2 = cJSON_CreateObject();
         cJSON *subCert = cJSON_GetArrayItem(certsRes1, i);
 	    cJSON *certRes1JSON = cJSON_DetachItemFromObjectCaseSensitive(subCert, "certificate");
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
         memset(msgHex,0,sizeof(msgHex));
  
         int a, b;
-        for(a=0, b=0; i<strlen(msgContent); a++, b+=2)
+        for(a=0, b=0; a<strlen(msgContent); a++, b+=2)
         { 
             sprintf((char*)msgHex+b,"%02X",msgContent[a]);
         }
