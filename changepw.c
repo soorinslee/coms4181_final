@@ -131,13 +131,22 @@ int parse_response(cJSON *root){
   cJSON *content;
   cJSON *response_type;
   cJSON *certificate;
-  printf("%s\n", cJSON_Print(root));
   //char *json_string = "[{\"id\":\"25139\",\"date\":\"2016-10-27\",\"name\":\"Komfy Switch With Camera DKZ-201S\\/W Password Disclosure\"},{\"id\":\"25117\",\"date\":\"2016-10-24\",\"name\":\"NETDOIT weak password Vulnerability\"}]";
   //char *json_string = "[{\"status_code\":300,\"response_type\":1,\"content\":{\"response_type\":null,\"certificate\":\"null\"}}]";
   //cJSON *root = cJSON_Parse(json_string);
+  if (root == NULL){
+      fprintf(stderr, "Error code: Response is NULL");
+      exit(1);
+  }
   int n = cJSON_GetArraySize(root);
-  status_code = cJSON_GetObjectItemCaseSensitive(root, "status_code");
-  content = cJSON_GetObjectItem(root, "content");
+
+
+  status_code = cJSON_GetObjectItem(root, "status_code");
+  if (cJSON_IsNumber(status_code) == 0){
+      fprintf(stderr, "Error code: status code is NULL");
+      exit(1);
+  }
+  content = cJSON_GetObjectItemCaseSensitive(root, "content");
   response_type = cJSON_GetObjectItemCaseSensitive(root, "response_type");
   certificate = cJSON_GetObjectItemCaseSensitive(content, "certificate");
   if (status_code->valueint <= 299 && status_code->valueint >= 200){
@@ -162,7 +171,6 @@ int parse_response(cJSON *root){
 
 
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -192,16 +200,12 @@ int main(int argc, char *argv[])
 
     printf("password: ");
     characters = getline(&buffer,&bufsize,stdin);
-    //printf("%zu characters were read.\n",characters);
-    //printf("You typed:%s",buffer);
 
     hashpassword(buffer);
     hex_to_string(password);
 
     printf("new password: ");
     characters = getline(&buffer,&bufsize,stdin);
-    //printf("%zu characters were read.\n",characters);
-    printf("You typed:%s",buffer);
 
     hashnewpassword(buffer);
     hex_to_new_string(new_password);
@@ -228,18 +232,16 @@ int main(int argc, char *argv[])
     strcat(command, buffer);
 
     int status = system(command);
+    free(command);
     //readfile();
     request = cjson_request(public_key);
 
     response = send_request(request);
-    // make sure you deallocate objects when finished
 
-
-    //save_certificate(certificate_string);
     parse_response(response);
 
     cJSON_Delete(response);
-    free(json);
+    cJSON_Delete(request);
 
     
     return(0);

@@ -36,7 +36,7 @@ void print_hex(BYTE str[], int len)
 	for(idx = 0; idx < len; idx++)
 		printf("%02x", str[idx]);
 		password_string[idx] = str[idx];
-	//printf("Password String is %s", password_string);
+	   printf("Password String is %s", password_string);
 }
 
 
@@ -47,7 +47,7 @@ int hashpassword(char *  input){
 	for (int idx = 0; idx < 100000; ++idx)
 		sha256_update(&ctx, input, strlen(input));
 	sha256_final(&ctx, password);
-	print_hex(password,SHA256_BLOCK_SIZE);
+	//print_hex(password,SHA256_BLOCK_SIZE);
 }
 cJSON* cjson_request(char * public_key){
 
@@ -113,9 +113,18 @@ int parse_response(cJSON *root){
 	//char *json_string = "[{\"id\":\"25139\",\"date\":\"2016-10-27\",\"name\":\"Komfy Switch With Camera DKZ-201S\\/W Password Disclosure\"},{\"id\":\"25117\",\"date\":\"2016-10-24\",\"name\":\"NETDOIT weak password Vulnerability\"}]";
 	//char *json_string = "[{\"status_code\":300,\"response_type\":1,\"content\":{\"response_type\":null,\"certificate\":\"null\"}}]";
 	//cJSON *root = cJSON_Parse(json_string);
+  if (root == NULL){
+      fprintf(stderr, "Error code: Response is NULL");
+      exit(1);
+  }
 	int n = cJSON_GetArraySize(root);
-	status_code = cJSON_GetObjectItem(root, "status_code");
-	printf("%d\n", status_code->valueint);
+
+
+  status_code = cJSON_GetObjectItem(root, "status_code");
+	if (cJSON_IsNumber(status_code) == 0){
+      fprintf(stderr, "Error code: status code is NULL");
+      exit(1);
+  }
 	content = cJSON_GetObjectItemCaseSensitive(root, "content");
 	response_type = cJSON_GetObjectItemCaseSensitive(root, "response_type");
 	certificate = cJSON_GetObjectItemCaseSensitive(content, "certificate");
@@ -170,9 +179,15 @@ int main(int argc, char *argv[])
 
 
     printf("password: ");
+
+    //fgets(buffer, bufsize, stdin); 
+    //printf("string is: %s\n", buffer); 
     characters = getline(&buffer,&bufsize,stdin);
-    //printf("%zu characters were read.\n",characters);
-    //printf("You typed:%s",buffer);
+    printf("%zu characters were read.\n",characters);
+    printf("You typed:%s",buffer);
+
+    int size = strlen(buffer); //Total size of string
+    buffer[size-1] = '\0';
 
     hashpassword(buffer);
     hex_to_string(password);
