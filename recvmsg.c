@@ -37,58 +37,69 @@ int main(int argc, char *argv[]) {
     char certContent[fsize + 1];
     memset(certContent, '\0', sizeof(certContent));
     fread(certContent, 1, fsize, certFile);
-    //fprintf(stdout, "Cert: %s\n", cert);
     fclose(certFile);
 
-    // Get username
-    struct passwd *pwd;
-    pwd = getpwuid(getuid()); 
-    char *username = pwd->pw_name;
-    //fprintf(stdout, "Username: %s\n", username);
+    // Sign certificate using client's private key
+    system("openssl smime -sign -in ./certs/cert.pem -signer ./certs/cert.pem -inkey ./keys/key.pem -out sign.txt -text");
+     
+    char *signature;
 
-    // Get URL
-    char *url = argv[1];
-    //fprintf(stdout, "URL: %s\n", url);
-
-    // Get port number
-    int portNumber = 443;
-    if (argc == 3){
-        portNumber = atoi(argv[2]);
-    }
-    //fprintf(stdout, "Port Number: %d\n", portNumber);
-
-    // Create request
-    int requestType = 5;
-    cJSON *request1 = cJSON_CreateObject();
-    cJSON *content = cJSON_CreateObject();
-    cJSON_AddStringToObject(request1, "url", url);
-    cJSON_AddNumberToObject(request1, "port-no", portNumber);
-    cJSON_AddNumberToObject(request1, "request-type", requestType);
-    cJSON_AddStringToObject(content, "certificate", certContent);
-    cJSON_AddItemToObject(request1, "content", content);
-    cJSON_AddNumberToObject(content, "request-type", requestType);
-    cJSON_AddStringToObject(content, "username", username);
-
-    // TODO: STORE SIGNATURE IN sign.txt
-    
     // Get signature
     {
         FILE *req1Sign;
         req1Sign = fopen("sign.txt", "r");
+
+        if (req1Sign == NULL){
+            printf("ERROR: Unable to get signature\n");            
+            return -1;
+        }
+
         fseek(req1Sign, 0, SEEK_END);
         long fsizeR1 = ftell(req1Sign);
         fseek(req1Sign, 0, SEEK_SET);
         signature = (char*) calloc(1, fsizeR1 + 1);
         fread(signature, 1, fsizeR1, req1Sign);
         fclose(req1Sign);   
+	
+	    // Check for signature
+        if (strlen(signature) == 0){
+            printf("ERROR: Unable to get signature\n");
+            free(signature);
+            return -1;
+        }        
         remove("sign.txt"); 
     }
+
+    // Get username
+    struct passwd *pwd;
+    pwd = getpwuid(getuid()); 
+    char *username = pwd->pw_name;
+
+    // Get URL
+    char *url = argv[1];
+
+    // Get port number
+    int portNumber = 443;
+    if (argc == 3){
+        portNumber = atoi(argv[2]);
+    }
+
+    // Create request
+    int requestType = 5;
+    cJSON *request1 = cJSON_CreateObject();
+    cJSON *content = cJSON_CreateObject();
+    cJSON_AddStringToObject(request1, "url", url);
+    cJSON_AddNumberToObject(request1, "port_no", portNumber);
+    cJSON_AddNumberToObject(request1, "request_type", requestType);
+    cJSON_AddStringToObject(content, "certificate", certContent);
+    cJSON_AddItemToObject(request1, "content", content);
+    cJSON_AddNumberToObject(content, "request_type", requestType);
+    cJSON_AddStringToObject(content, "username", username);
 
     // Add signature to content
     cJSON_AddStringToObject(content, "signature", signature);
 
     char *request1String = cJSON_Print(request1);
-    printf("%s\n", request1String);
     free(request1String);
 
     // Invoke send_request and get response
@@ -100,40 +111,129 @@ int main(int argc, char *argv[]) {
     cJSON *contentRes1 = cJSON_DetachItemFromObjectCaseSensitive(response1JSON, "content"); 
 
     // Check for response status code
-    char* response1Code = cJSON_Print(cJSON_GetObjectItemCaseSensitive(response1JSON, "status-code"));
+    char* response1Code = cJSON_Print(cJSON_GetObjectItemCaseSensitive(response1JSON, "status_code"));
 
     if (strcmp(response1Code, "200") != 0){
         char *errorMsg = cJSON_Print(cJSON_GetObjectItemCaseSensitive(contentRes1, "error_msg"));
         fprintf(stderr, "ERROR: %s\n", errorMsg);
         cJSON_Delete(response1JSON);
+        cJSON_Delete(contentRes1);
         free(errorMsg);
+        free(signature);
         free(response1Code);
         return -1;
     }
 
     // Get sender certificate
-    cJSON *certRes1 = cJSON_GetObjectItemCaseSensitive(contentRes1, "sender-certificate");
-    char *senderCert = cJSON_Print(certRes1);
+    cJSON *certRes1 = cJSON_GetObjectItemCaseSensitive(contentRes1, "sender_certificate");
+    char *senderCert = certRes1->valuestring;
 
     // Create temporary certificate file
-    FILE *certOutput = fopen("cert.pem", "w");
-    fprintf(certOutput, "%s\n", senderCert);
+    FILE *certOutput = fopen("sendCert.pem", "w");
+    fprintf(certOutput, "%s", senderCert);
+    fclose(certOutput);
 
     // Get encrypted message
     cJSON *msgRes1 = cJSON_GetObjectItemCaseSensitive(contentRes1, "message");
-    char *msg = cJSON_Print(msgRes1);
+    char *msg = msgRes1->valuestring;
 
     // Create temporary message file
-    FILE *msgOutput = fopen("msg.txt", "w");
-    fprintf(msgOutput, "%s\n", msg);
+    FILE *msgOutput = fopen("encrypted.txt", "w");
+    fprintf(msgOutput, "%s", msg);
+    fclose(msgOutput);
 
-    // TODO: VERIFY MESSSAGE
+    // Decrypt message
+    system("openssl smime -decrypt -in encrypted.txt -out unencrypted.txt -recip ./certs/cert.pem -inkey keys/key.pem");
+
+    char *decrypted;
+
+    // Check if decryption worked
+    {
+        FILE *decFp;
+        decFp = fopen("unencrypted.txt", "r");
+
+        if (decFp == NULL){
+            printf("ERROR: Unable to decrypt\n"); 
+	    free(signature);
+            free(response1Code);
+            cJSON_Delete(response1JSON);
+            cJSON_Delete(contentRes1); 
+            return -1;
+        }
+
+        fseek(decFp, 0, SEEK_END);
+        long fsizeR1 = ftell(decFp);
+        fseek(decFp, 0, SEEK_SET);
+        decrypted = (char*) calloc(1, fsizeR1 + 1);
+        fread(decrypted, 1, fsizeR1, decFp);
+        fclose(decFp);   
+	
+        if (strlen(decrypted) == 0){
+            printf("ERROR: Unable to decrypt\n");
+            free(decrypted);
+	    free(signature);
+            free(response1Code);
+            cJSON_Delete(response1JSON);
+            cJSON_Delete(contentRes1);
+            return -1;
+        }        
+    }
+
+    // Verify message
+    fprintf(stdout, "Verifying message...\n");
+    system("openssl smime -verify -noverify -in unencrypted.txt -signer sendCert.pem -out verifiedMsg.txt");
+    
+    char *message;
+
+    // Get emssage 
+    {
+        FILE *msgFp;
+        msgFp = fopen("verifiedMsg.txt", "r");
+
+        if (msgFp == NULL){
+            printf("ERROR: Unable to get message\n"); 
+	        ree(signature);
+            free(response1Code);
+	        free(decrypted);
+            cJSON_Delete(response1JSON);
+            cJSON_Delete(contentRes1); 
+            return -1;
+        }
+
+        fseek(msgFp, 0, SEEK_END);
+        long fsizeMsg = ftell(msgFp);
+        fseek(msgFp, 0, SEEK_SET);
+        message = (char*) calloc(1, fsizeMsg + 1);
+        fread(message, 1, fsizeMsg, msgFp);
+        fclose(msgFp);   
+	
+        if (strlen(decrypted) == 0){
+            printf("ERROR: Unable to get message\n");
+            free(decrypted);
+	        free(signature);
+            free(message);
+            free(decrypted);
+            free(response1Code);
+            cJSON_Delete(response1JSON);
+            cJSON_Delete(contentRes1);
+            return -1;
+        }      
+       
+        remove("verifiedMsg.txt"); 
+    }    
+
+    // Print message
+    fprintf(stdout, "\n%s\n", message);
 
     // Free/Delete everything
     free(signature);
     free(response1Code);
+    free(message);
+    free(decrypted);
     cJSON_Delete(response1JSON);
     cJSON_Delete(contentRes1);
-
+    remove("encrypted.txt");
+    remove("unencrypted.txt");
+    remove("sendCert.pem");
     return 1;
 }
