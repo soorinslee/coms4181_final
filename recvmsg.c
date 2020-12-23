@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
 
         if (decFp == NULL){
             printf("ERROR: Unable to decrypt\n"); 
-	    free(signature);
+	        free(signature);
             free(response1Code);
             cJSON_Delete(response1JSON);
             cJSON_Delete(contentRes1); 
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
         if (strlen(decrypted) == 0){
             printf("ERROR: Unable to decrypt\n");
             free(decrypted);
-	    free(signature);
+	        free(signature);
             free(response1Code);
             cJSON_Delete(response1JSON);
             cJSON_Delete(contentRes1);
@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
     
     char *message;
 
-    // Get emssage 
+    // Get message 
     {
         FILE *msgFp;
         msgFp = fopen("verifiedMsg.txt", "r");
