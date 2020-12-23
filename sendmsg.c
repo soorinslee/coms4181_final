@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     fclose(certFile);
 
     // Sign certificate using client's private key
-    system("openssl dgst -sign ./keys/key.pem -passin pass:password -keyform PEM -sha256 -out sign.txt -binary ./certs/cert.pem");
+    system("openssl smime -in ./certs/cert.pem -signer ./certs/cert.pem -inkey ./keys/key.pem -out sign.txt -text");
      
     char *signature;
 
@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
         remove("sign.txt"); 
     }
 
+    /*
     // Convert signature to hex
     char signHex[strlen(signature)*3];
     memset(signHex,0,sizeof(signHex));
@@ -85,6 +86,7 @@ int main(int argc, char *argv[]) {
         sprintf((char*)signHex+j,"%02X",signature[i]);
     }
     signHex[j]='\0';
+    */
 
     // Get username
     struct passwd *pwd;
@@ -130,7 +132,7 @@ int main(int argc, char *argv[]) {
     cJSON_AddStringToObject(content, "certificate", certContent);
 
     // Add signature to content
-    cJSON_AddStringToObject(content, "signature", signHex);
+    cJSON_AddStringToObject(content, "signature", signature);
 
     // Invoke send_request and get response
     cJSON* response1JSON = NULL;
@@ -239,6 +241,7 @@ int main(int argc, char *argv[]) {
 
     	}
 
+        /*
 	    // Convert message to hex
         char msgHex[strlen(msgContent)*3];
         memset(msgHex,0,sizeof(msgHex));
@@ -249,9 +252,10 @@ int main(int argc, char *argv[]) {
             sprintf((char*)msgHex+b,"%02X",msgContent[a]);
         }
         msgHex[b]='\0';
+        */
 
         // Add encrypted and signed message
-        cJSON_AddStringToObject(contentR2, "message", msgHex);
+        cJSON_AddStringToObject(contentR2, "message", msgContent);
 
         // Add signature
         cJSON_AddStringToObject(contentR2, "signature", signature);
