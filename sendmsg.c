@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
     // Get message from stdin
     FILE *msgFp = fopen("msgUnencrypted.txt", "w");
     int read;
-    char *msgCont[BUF_SIZE];
+    char msgCont[BUF_SIZE];
 
     while ((read = fread(msgCont, 1, BUF_SIZE, stdin))) {
         fwrite(msgCont, read, 1, msgFp);
