@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
         { 
             sprintf((char*)msgHex+b,"%02X",msgContent[a]);
         }
-        msgHex[j]='\0';
+        msgHex[b]='\0';
 
         // Add encrypted and signed message
         cJSON_AddStringToObject(contentR2, "message", msgHex);
