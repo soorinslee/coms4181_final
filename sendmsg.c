@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     fclose(certFile);
 
     // Sign certificate using client's private key
-    system("openssl smime -in ./certs/cert.pem -signer ./certs/cert.pem -inkey ./keys/key.pem -out sign.txt -text");
+    system("openssl smime -sign -in ./certs/cert.pem -signer ./certs/cert.pem -inkey ./keys/key.pem -out sign.txt -text");
      
     char *signature;
 
